@@ -94,7 +94,7 @@ body {
   pointer-events: auto;
   padding: clamp(12px, 2vw, 18px) clamp(14px, 2.4vw, 22px);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.50);
   background: rgba(8, 11, 24, 0.05);
   backdrop-filter: blur(14px);
   color: #eef1ff;
@@ -103,7 +103,7 @@ body {
   line-height: 1.45;
   min-height: clamp(48px, 7vw, 80px);
   resize: none;
-  outline: none;
+  outline: 2px solid transparent;
   transition: border-color 0.6s ease, background 0.6s ease, box-shadow 0.6s ease;
 }
 
@@ -115,6 +115,22 @@ body {
 
 #thoughts.prompt-active {
   color: rgba(220, 224, 255, 0.5);
+  animation: textareaHighlight 3s ease-in-out infinite;
+}
+
+@keyframes textareaHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(118, 142, 255, 0), 0 0 22px rgba(118, 142, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(118, 142, 255, 0.2), 0 0 30px rgba(118, 142, 255, 0.15);
+    border-color: rgba(118, 142, 255, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(118, 142, 255, 0), 0 0 22px rgba(118, 142, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
 }
 
 .modal {
@@ -445,8 +461,9 @@ body {
 
 @keyframes wordLift {
   0% {
-    opacity: 1;
+    opacity: var(--opacity-start, 1);
     transform: translate3d(0, 0, 0) scale(var(--scale, 1)) rotate(0deg);
+    filter: blur(var(--blur-start, 0px)) hue-rotate(var(--hue-start, 0deg));
   }
   to {
     opacity: var(--opacity-end, 0);

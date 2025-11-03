@@ -138,7 +138,6 @@
             audio track
             <select id="music-track">
               <option value="audio/deference-for-darkness-cut.m4a">Deference for Darkness</option>
-              <option value="audio/the-quiet-place.mp3">The Quiet Place</option>
             </select>
           </label>
         </form>
@@ -223,7 +222,7 @@
                 "absoluteMax": 1,
                 "step": 0.01,
                 "unit": "seconds",
-                "public": true
+                "public": false
               },
               {
                 "path": "delay.lineStep",
@@ -258,7 +257,7 @@
                 "absoluteMax": { "type": "dynamic", "key": "viewportHeight" },
                 "step": 5,
                 "unit": "pixels",
-                "public": true
+                "public": false
               },
               {
                 "path": "travel.vertical.random",
@@ -300,7 +299,7 @@
                 "absoluteMax": { "type": "dynamic", "key": "viewportWidth" },
                 "step": 5,
                 "unit": "pixels",
-                "public": true
+                "public": false
               },
               {
                 "path": "travel.fadeBufferRatio",
@@ -328,11 +327,11 @@
                 "label": "average velocity",
                 "prompt": "Average multiplier applied to travel distances.",
                 "type": "range",
-                "default": 1.125,
+                "default": 0.6,
                 "min": 0.1,
-                "max": 2.5,
+                "max": 1,
                 "absoluteMin": 0.1,
-                "absoluteMax": 2.5,
+                "absoluteMax": 1,
                 "step": 0.05,
                 "unit": "ratio",
                 "public": true
@@ -349,7 +348,7 @@
                 "absoluteMax": 45,
                 "step": 1,
                 "unit": "degrees",
-                "public": true
+                "public": false
               }
             ]
           },
@@ -503,7 +502,7 @@
                 "label": "opacity end min",
                 "prompt": "Minimum opacity when fragments leave.",
                 "type": "range",
-                "default": 0.05,
+                "default": 0,
                 "min": 0,
                 "max": 1,
                 "absoluteMin": 0,
@@ -517,7 +516,7 @@
                 "label": "opacity end max",
                 "prompt": "Maximum opacity when fragments leave.",
                 "type": "range",
-                "default": 0.3,
+                "default": 0,
                 "min": 0,
                 "max": 1,
                 "absoluteMin": 0,

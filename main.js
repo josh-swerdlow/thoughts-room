@@ -3,6 +3,48 @@ const thoughtInput = document.getElementById("thoughts");
 const thoughtLayer = document.getElementById("thought-layer");
 const audioEl = document.getElementById("bg-audio");
 const skyEl = document.querySelector(".stars");
+// Ensure the glowing/pulsing border is enabled when the box is unfocused, and stopped when focused
+
+function setGlowState(isActive) {
+  if (isActive) {
+    thoughtInput.classList.add("prompt-active");
+  } else {
+    thoughtInput.classList.remove("prompt-active");
+  }
+}
+
+// Initial state: glow should be on
+setGlowState(true);
+
+thoughtInput.addEventListener("focus", function () {
+  // Remove glowing animation when focused
+  setGlowState(false);
+});
+
+thoughtInput.addEventListener("blur", function () {
+  // Restore glowing animation when unfocused
+  setGlowState(true);
+});
+
+// Also ensure correct state for browser/tab focus changes
+window.addEventListener("visibilitychange", function () {
+  if (document.activeElement === thoughtInput) {
+    setGlowState(false);
+  } else {
+    setGlowState(true);
+  }
+});
+
+// On page load, make sure the state is correct
+window.addEventListener("load", function () {
+  if (document.activeElement === thoughtInput) {
+    setGlowState(false);
+  } else {
+    setGlowState(true);
+  }
+});
+
+
 
 const backgrounds = [
   "images/hubble-m44.webp",
@@ -34,7 +76,7 @@ const DEFAULT_ANIMATION = {
     fadeBufferRatio: 0.18, // fraction of screen height used as fade buffer
   },
   velocity: {
-    average: 1.125, // average velocity multiplier applied to travel distances
+    average: 0.6, // average velocity multiplier applied to travel distances
   },
   erratic: {
     rotationMax: 10, // maximum random rotation in degrees
@@ -56,8 +98,8 @@ const DEFAULT_ANIMATION = {
   opacity: {
     startMin: 0.75,
     startMax: 1,
-    endMin: 0.05,
-    endMax: 0.3,
+    endMin: 0,
+    endMax: 0,
   },
 };
 
@@ -551,11 +593,22 @@ const spawnThought = (text) => {
     const delaySeconds = lineDelay + Math.random() * animationConfig.delay.max;
     const duration = durationSeconds * 1000;
     const delay = delaySeconds * 1000;
-    const velocity = animationConfig.velocity.average || 1.125;
+    const velocity = animationConfig.velocity.average || 0.6;
 
-    const baseVerticalTravel =
+    // Ensure vertical travel is screen-size based and words never stay near text box
+    const screenHeight = window.innerHeight || 1080;
+    const textBoxTop = boxRect.top;
+    const minDistanceFromTextBox = screenHeight * 0.3; // Minimum 30% of screen height above text box
+
+    // Calculate base vertical travel from config (already screen-size based from schema)
+    let baseVerticalTravel =
       animationConfig.travel.vertical.base +
       Math.random() * animationConfig.travel.vertical.random;
+
+    // Ensure minimum travel distance so words don't linger near text box
+    const minVerticalTravel = Math.max(baseVerticalTravel, minDistanceFromTextBox);
+    baseVerticalTravel = minVerticalTravel;
+
     const totalVerticalTravel = baseVerticalTravel + fadeBuffer;
 
     const dx = (Math.random() - 0.5) * horizontalSpread * velocity;
@@ -671,7 +724,28 @@ const spawnThought = (text) => {
 
   thoughtLayer.appendChild(thought);
 
-  // Position-based cleanup: check if elements are off-screen or have completed their animation
+  // Add animationend listeners to word elements for cleanup
+  const wordElements = thought.querySelectorAll('.thought-word, .thought-space');
+  let completedAnimations = 0;
+  const totalAnimations = wordElements.length;
+
+  const handleAnimationEnd = () => {
+    completedAnimations++;
+    // When all animations complete, remove the thought after a short delay
+    if (completedAnimations >= totalAnimations) {
+      window.setTimeout(() => {
+        if (thought.parentNode) {
+          thought.remove();
+        }
+      }, 100);
+    }
+  };
+
+  wordElements.forEach((el) => {
+    el.addEventListener('animationend', handleAnimationEnd, { once: true });
+  });
+
+  // Fallback cleanup: check if elements are off-screen or have completed their animation
   const checkAndRemove = () => {
     if (!thought.parentNode) {
       return;
@@ -689,31 +763,24 @@ const spawnThought = (text) => {
     const isOffScreenRight = thoughtRect.left > screenWidth;
     const isOffScreen = isOffScreenTop || isOffScreenBottom || isOffScreenLeft || isOffScreenRight;
 
-    // Check if thought is near edge and animation has likely completed
-    const marginRatio = 0.05;
-    const nearTopEdge = thoughtRect.bottom < screenHeight * marginRatio;
-    const nearBottomEdge = thoughtRect.top > screenHeight * (1 - marginRatio);
-    const nearLeftEdge = thoughtRect.right < screenWidth * marginRatio;
-    const nearRightEdge = thoughtRect.left > screenWidth * (1 - marginRatio);
-    const nearEdge = nearTopEdge || nearBottomEdge || nearLeftEdge || nearRightEdge;
-
-    // Calculate expected animation completion time
+    // Calculate expected animation completion time (with buffer for fade)
     const elapsed = Date.now() - spawnTime;
-    const shouldBeComplete = maxLifetime > 0 && elapsed > maxLifetime + 500;
+    const shouldBeComplete = maxLifetime > 0 && elapsed > maxLifetime + 1000;
 
-    if (isOffScreen || (nearEdge && shouldBeComplete)) {
+    // Remove if off-screen or animation should be complete
+    if (isOffScreen || shouldBeComplete) {
       thought.remove();
       return;
     }
 
     // Continue checking periodically
     window.requestAnimationFrame(() => {
-      window.setTimeout(checkAndRemove, 100);
+      window.setTimeout(checkAndRemove, 200);
     });
   };
 
   thought.dataset.spawnTime = Date.now();
-  window.setTimeout(checkAndRemove, 100);
+  window.setTimeout(checkAndRemove, 500);
 };
 
 const releasePrompt = () => {
