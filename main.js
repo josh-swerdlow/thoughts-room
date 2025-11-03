@@ -12,7 +12,7 @@ const backgrounds = [
 ];
 
 const PROMPT_TEXT =
-  "This is your thoughts room. Let your thoughts drift away after writing them down.";
+  "This is your thoughts room. Type out your thoughts in this box and then watch them float away when you press enter.";
 
 const DEFAULT_ANIMATION = {
   duration: {
