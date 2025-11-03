@@ -5,7 +5,6 @@ const audioEl = document.getElementById("bg-audio");
 const skyEl = document.querySelector(".stars");
 
 const backgrounds = [
-  "images/background.jpg",
   "images/hubble-m44.webp",
   "images/hubble-m48.webp",
   "images/wild-duck-cluster.webp",
@@ -490,7 +489,23 @@ normalizeAnimationConfig(animationConfig);
 
 if (skyEl && backgrounds.length) {
   const choice = backgrounds[Math.floor(Math.random() * backgrounds.length)];
-  skyEl.style.backgroundImage = `url("${choice}")`;
+
+  // Preload the selected background image
+  const preloadLink = document.getElementById('background-preload');
+  if (preloadLink) {
+    preloadLink.href = choice;
+  }
+
+  // Create image object to preload
+  const img = new Image();
+  img.src = choice;
+  img.onload = () => {
+    skyEl.style.backgroundImage = `url("${choice}")`;
+  };
+  // Fallback if image fails to load
+  img.onerror = () => {
+    skyEl.style.backgroundImage = `url("${choice}")`;
+  };
 }
 
 let audioFadedIn = false;
