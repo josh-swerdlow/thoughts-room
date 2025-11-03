@@ -119,7 +119,7 @@ Use `npm run dev` during development to keep `dist/` updated as you edit `assets
 
 ## Credits
 
-- Inspired by [The Quiet Place Project – Thoughts Room](https://thequietplaceproject.com/thethoughtsroom)
+- Inspired by The Quiet Place Project – Thoughts Room by [Amitay](https://x.com/amitayt)
 - Star-field imagery courtesy of NASA / Hubble
 - Ambient audio: “Deference for Darkness (cut)” (replace with your own licensed track as needed)
 - Recreated & maintained by Josh Swerdlow
