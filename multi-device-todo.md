@@ -1,0 +1,1 @@
+Make this work cross-device with anchored css values instead of hardcoded ones at discrete device sizes.

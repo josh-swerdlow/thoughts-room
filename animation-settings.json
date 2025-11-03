@@ -1,0 +1,384 @@
+{
+  "sections": [
+    {
+      "id": "timing",
+      "title": "Timing",
+      "prompt": "How long do your thoughts stay",
+      "fields": [
+        {
+          "path": "duration.base",
+          "label": "base duration",
+          "prompt": "Sets the minimum time a thought stays visible before drifting away.",
+          "type": "range",
+          "default": 4.2,
+          "min": 0,
+          "max": 5,
+          "absoluteMin": 0,
+          "absoluteMax": 5,
+          "step": 0.1,
+          "unit": "seconds",
+          "public": true
+        },
+        {
+          "path": "delay.max",
+          "label": "max delay",
+          "prompt": "Controls stagger before individual words begin drifting.",
+          "type": "range",
+          "default": 0.36,
+          "min": 0,
+          "max": 1,
+          "absoluteMin": 0,
+          "absoluteMax": 1,
+          "step": 0.01,
+          "unit": "seconds",
+          "public": true
+        },
+        {
+          "path": "duration.random",
+          "label": "duration randomness",
+          "prompt": "Adds additional random lifetime to each effort.",
+          "type": "range",
+          "default": 2.6,
+          "min": 0,
+          "max": 3,
+          "absoluteMin": 0,
+          "absoluteMax": 3,
+          "step": 0.1,
+          "unit": "seconds",
+          "public": false
+        },
+        {
+          "path": "delay.lineStep",
+          "label": "line delay",
+          "prompt": "Extra delay between lines when multiple lines are released.",
+          "type": "range",
+          "default": 0.45,
+          "min": 0,
+          "max": 1,
+          "absoluteMin": 0,
+          "absoluteMax": 1,
+          "step": 0.01,
+          "unit": "seconds",
+          "public": false
+        }
+      ]
+    },
+    {
+      "id": "travel",
+      "title": "Travel",
+      "prompt": "How far your thoughts travel",
+      "fields": [
+        {
+          "path": "travel.vertical.base",
+          "label": "vertical base (px)",
+          "prompt": "Minimum upward travel distance for each thought.",
+          "type": "range",
+          "default": {
+            "type": "dynamic",
+            "key": "viewportHeight",
+            "scale": 0.7,
+            "fallback": 110,
+            "round": true
+          },
+          "min": 0,
+          "max": {
+            "type": "dynamic",
+            "key": "viewportHeight"
+          },
+          "absoluteMin": 0,
+          "absoluteMax": {
+            "type": "dynamic",
+            "key": "viewportHeight"
+          },
+          "step": 5,
+          "unit": "pixels",
+          "public": true
+        },
+        {
+          "path": "travel.vertical.random",
+          "label": "vertical randomness (px)",
+          "prompt": "Extra random upward distance added to every thought.",
+          "type": "range",
+          "default": 220,
+          "min": 0,
+          "max": {
+            "type": "dynamic",
+            "key": "viewportHeight"
+          },
+          "absoluteMin": 0,
+          "absoluteMax": {
+            "type": "dynamic",
+            "key": "viewportHeight"
+          },
+          "step": 5,
+          "unit": "pixels",
+          "public": false
+        },
+        {
+          "path": "travel.horizontal.ratio",
+          "label": "horizontal ratio",
+          "prompt": "Fraction of a thought's width allowed for horizontal drift.",
+          "type": "range",
+          "default": 0.28,
+          "min": 0,
+          "max": 1,
+          "absoluteMin": 0,
+          "absoluteMax": 1,
+          "step": 0.01,
+          "unit": "ratio",
+          "public": false
+        },
+        {
+          "path": "travel.horizontal.min",
+          "label": "horizontal min (px)",
+          "prompt": "Minimum horizontal drift distance. Higher values pull thoughts toward the centre.",
+          "type": "range",
+          "default": {
+            "type": "dynamic",
+            "key": "viewportWidth",
+            "scale": 0.5,
+            "fallback": 600,
+            "round": true
+          },
+          "min": 0,
+          "max": {
+            "type": "dynamic",
+            "key": "viewportWidth"
+          },
+          "absoluteMin": 0,
+          "absoluteMax": {
+            "type": "dynamic",
+            "key": "viewportWidth"
+          },
+          "step": 5,
+          "unit": "pixels",
+          "public": true
+        },
+        {
+          "path": "travel.fadeBufferRatio",
+          "label": "fade buffer ratio",
+          "prompt": "Fraction of the screen height appended to travel so thoughts continue drifting while fading.",
+          "type": "range",
+          "default": 0.18,
+          "min": 0,
+          "max": 0.6,
+          "absoluteMin": 0,
+          "absoluteMax": 1,
+          "step": 0.01,
+          "unit": "ratio",
+          "public": false
+        }
+      ]
+    },
+    {
+      "id": "velocity",
+      "title": "Velocity",
+      "prompt": "How fast your thoughts travel",
+      "fields": [
+        {
+          "path": "velocity.average",
+          "label": "average velocity",
+          "prompt": "Average multiplier applied to travel distances.",
+          "type": "range",
+          "default": 1.125,
+          "min": 0.1,
+          "max": 2.5,
+          "absoluteMin": 0.1,
+          "absoluteMax": 2.5,
+          "step": 0.05,
+          "unit": "ratio",
+          "public": true
+        },
+        {
+          "path": "erratic.rotationMax",
+          "label": "rotation max (deg)",
+          "prompt": "Maximum random rotation applied to fragments.",
+          "type": "range",
+          "default": 10,
+          "min": 0,
+          "max": 25,
+          "absoluteMin": 0,
+          "absoluteMax": 45,
+          "step": 1,
+          "unit": "degrees",
+          "public": true
+        }
+      ]
+    },
+    {
+      "id": "filters",
+      "title": "Filters & Opacity",
+      "prompt": "Fine-grained visual tuning.",
+      "fields": [
+        {
+          "path": "filter.blur.startMin",
+          "label": "blur start min (px)",
+          "prompt": "Minimum blur applied when a fragment appears.",
+          "type": "range",
+          "default": 0.2,
+          "min": 0,
+          "max": 2,
+          "absoluteMin": 0,
+          "absoluteMax": 4,
+          "step": 0.05,
+          "unit": "pixels",
+          "public": false
+        },
+        {
+          "path": "filter.blur.startMax",
+          "label": "blur start max (px)",
+          "prompt": "Maximum blur applied when a fragment appears.",
+          "type": "range",
+          "default": 0.8,
+          "min": 0,
+          "max": 2,
+          "absoluteMin": 0,
+          "absoluteMax": 4,
+          "step": 0.05,
+          "unit": "pixels",
+          "public": false
+        },
+        {
+          "path": "filter.blur.endMin",
+          "label": "blur end min (px)",
+          "prompt": "Minimum blur applied when a fragment leaves.",
+          "type": "range",
+          "default": 1.2,
+          "min": 0,
+          "max": 3,
+          "absoluteMin": 0,
+          "absoluteMax": 5,
+          "step": 0.05,
+          "unit": "pixels",
+          "public": false
+        },
+        {
+          "path": "filter.blur.endMax",
+          "label": "blur end max (px)",
+          "prompt": "Maximum blur applied when a fragment leaves.",
+          "type": "range",
+          "default": 2.6,
+          "min": 0,
+          "max": 4,
+          "absoluteMin": 0,
+          "absoluteMax": 6,
+          "step": 0.05,
+          "unit": "pixels",
+          "public": false
+        },
+        {
+          "path": "filter.hue.startMin",
+          "label": "hue start min (deg)",
+          "prompt": "Minimum hue shift when a fragment appears.",
+          "type": "range",
+          "default": -6,
+          "min": -45,
+          "max": 45,
+          "absoluteMin": -90,
+          "absoluteMax": 90,
+          "step": 1,
+          "unit": "degrees",
+          "public": false
+        },
+        {
+          "path": "filter.hue.startMax",
+          "label": "hue start max (deg)",
+          "prompt": "Maximum hue shift when a fragment appears.",
+          "type": "range",
+          "default": 6,
+          "min": -45,
+          "max": 45,
+          "absoluteMin": -90,
+          "absoluteMax": 90,
+          "step": 1,
+          "unit": "degrees",
+          "public": false
+        },
+        {
+          "path": "filter.hue.endMin",
+          "label": "hue end min (deg)",
+          "prompt": "Minimum hue shift when a fragment leaves.",
+          "type": "range",
+          "default": -18,
+          "min": -90,
+          "max": 90,
+          "absoluteMin": -120,
+          "absoluteMax": 120,
+          "step": 1,
+          "unit": "degrees",
+          "public": false
+        },
+        {
+          "path": "filter.hue.endMax",
+          "label": "hue end max (deg)",
+          "prompt": "Maximum hue shift when a fragment leaves.",
+          "type": "range",
+          "default": 18,
+          "min": -90,
+          "max": 90,
+          "absoluteMin": -120,
+          "absoluteMax": 120,
+          "step": 1,
+          "unit": "degrees",
+          "public": false
+        },
+        {
+          "path": "opacity.startMin",
+          "label": "opacity start min",
+          "prompt": "Minimum opacity when fragments appear.",
+          "type": "range",
+          "default": 0.75,
+          "min": 0,
+          "max": 1,
+          "absoluteMin": 0,
+          "absoluteMax": 1,
+          "step": 0.05,
+          "unit": "ratio",
+          "public": false
+        },
+        {
+          "path": "opacity.startMax",
+          "label": "opacity start max",
+          "prompt": "Maximum opacity when fragments appear.",
+          "type": "range",
+          "default": 1,
+          "min": 0,
+          "max": 1,
+          "absoluteMin": 0,
+          "absoluteMax": 1,
+          "step": 0.05,
+          "unit": "ratio",
+          "public": false
+        },
+        {
+          "path": "opacity.endMin",
+          "label": "opacity end min",
+          "prompt": "Minimum opacity when fragments leave.",
+          "type": "range",
+          "default": 0.05,
+          "min": 0,
+          "max": 1,
+          "absoluteMin": 0,
+          "absoluteMax": 1,
+          "step": 0.05,
+          "unit": "ratio",
+          "public": false
+        },
+        {
+          "path": "opacity.endMax",
+          "label": "opacity end max",
+          "prompt": "Maximum opacity when fragments leave.",
+          "type": "range",
+          "default": 0.3,
+          "min": 0,
+          "max": 1,
+          "absoluteMin": 0,
+          "absoluteMax": 1,
+          "step": 0.05,
+          "unit": "ratio",
+          "public": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,495 @@
+:root {
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  text-transform: lowercase;
+  color: #cfd3f9;
+  background-color: #000;
+  overflow: hidden;
+}
+
+#scene {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  padding: clamp(32px, 5vw, 64px) clamp(24px, 5vw, 64px);
+}
+
+.sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+
+.nav-buttons {
+  position: fixed;
+  top: clamp(12px, 3vh, 28px);
+  right: clamp(14px, 4vw, 32px);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  z-index: 5;
+}
+
+.glass-button {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(14, 17, 32, 0.24);
+  backdrop-filter: blur(14px);
+  color: #e5e8ff;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
+}
+
+.glass-button:hover,
+.glass-button:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.52);
+  background: rgba(22, 25, 44, 0.42);
+  color: #ffffff;
+}
+
+.thoughts-shell {
+  position: fixed;
+  inset: auto 0 0 0;
+  padding: clamp(14px, 3vw, 32px) clamp(22px, 5vw, 72px) clamp(22px, 5vw, 46px);
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+#thoughts {
+  width: 100%;
+  max-width: min(960px, 92vw);
+  pointer-events: auto;
+  padding: clamp(12px, 2vw, 18px) clamp(14px, 2.4vw, 22px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 11, 24, 0.05);
+  backdrop-filter: blur(14px);
+  color: #eef1ff;
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  letter-spacing: 0.05em;
+  line-height: 1.45;
+  min-height: clamp(48px, 7vw, 80px);
+  resize: none;
+  outline: none;
+  transition: border-color 0.6s ease, background 0.6s ease, box-shadow 0.6s ease;
+}
+
+#thoughts:focus {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(14, 18, 36, 0.08);
+  box-shadow: 0 0 22px rgba(118, 142, 255, 0.08);
+}
+
+#thoughts.prompt-active {
+  color: rgba(220, 224, 255, 0.5);
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 6;
+}
+
+.modal.active {
+  display: block;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 3, 18, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.modal-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(680px, 92vw);
+  max-height: min(80vh, 700px);
+  padding: 28px;
+  border-radius: 18px;
+  background: rgba(10, 13, 26, 0.9);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  color: #eff0ff;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  color: rgba(239, 240, 255, 0.8);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 6px;
+}
+
+.modal-form {
+  display: grid;
+  gap: 18px;
+}
+
+.modal-sections {
+  display: grid;
+  gap: 18px;
+}
+
+.modal-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: rgba(233, 236, 255, 0.64);
+}
+
+.modal-hint.error {
+  color: rgba(255, 122, 122, 0.78);
+}
+
+.modal-form section {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 16px 18px 20px;
+  background: rgba(14, 17, 32, 0.35);
+}
+
+.section-prompt {
+  margin: 4px 0 14px;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  color: rgba(231, 233, 255, 0.62);
+}
+
+.modal-field {
+  display: grid;
+  gap: 6px;
+}
+
+.modal-field label {
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: rgba(233, 236, 255, 0.86);
+  text-transform: lowercase;
+}
+
+.modal-field label .unit {
+  color: rgba(233, 236, 255, 0.62);
+}
+
+.modal-field label {
+  cursor: pointer;
+}
+
+.field-hint {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: rgba(233, 236, 255, 0.52);
+}
+
+.modal-field input[type="range"] {
+  width: 100%;
+}
+
+.modal-form section h3 {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: rgba(230, 233, 255, 0.82);
+}
+
+.slider-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: rgba(231, 234, 255, 0.85);
+}
+
+.slider-value {
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.modal-form input[type="number"] {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(16, 19, 34, 0.65);
+  color: #f5f6ff;
+  font-size: 0.85rem;
+}
+
+.modal-form input[type="number"]:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(22, 26, 42, 0.75);
+}
+
+.modal-form input[type="range"] {
+  width: 100%;
+  accent-color: #c5ccff;
+}
+
+.modal-form input[type="range"]:focus-visible {
+  outline: none;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-actions button {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(12, 15, 28, 0.5);
+  color: #eff2ff;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.modal-actions button:hover,
+.modal-actions button:focus-visible {
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(22, 25, 40, 0.7);
+  outline: none;
+}
+
+#animations-reset {
+  margin-right: auto;
+}
+
+.modal-body {
+  display: grid;
+  gap: 14px;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  color: rgba(233, 236, 255, 0.85);
+}
+
+.modal-body a {
+  color: rgba(168, 190, 255, 0.95);
+  text-decoration: none;
+}
+
+.modal-body a:hover,
+.modal-body a:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.music-form {
+  display: grid;
+  gap: 16px;
+}
+
+.music-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.glass-button.small {
+  padding: 7px 14px;
+  font-size: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(14, 17, 32, 0.24);
+}
+
+.music-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: rgba(231, 233, 255, 0.82);
+}
+
+.music-select select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(16, 19, 34, 0.6);
+  color: #f0f2ff;
+  font-size: 0.9rem;
+}
+
+.music-select select:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+#thought-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.thought {
+  position: absolute;
+  left: var(--left, 0px);
+  top: var(--top, 0px);
+  width: var(--width, auto);
+  --scale: 1;
+  --rotation: 0deg;
+  color: rgba(236, 239, 255, 0.94);
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.32);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 20px rgba(160, 180, 255, 0.2));
+  opacity: 1;
+}
+
+.thought-words {
+  display: inline;
+}
+
+.thought-word,
+.thought-space,
+.thought-break {
+  display: inline-block;
+  white-space: pre;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  pointer-events: none;
+  user-select: none;
+  transform: translate3d(0, 0, 0) scale(var(--scale, 1)) rotate(var(--rotation, 0deg));
+  opacity: var(--opacity-start, 1);
+  filter: blur(var(--blur-start, 0px)) hue-rotate(var(--hue-start, 0deg));
+}
+
+.thought-word {
+  color: inherit;
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.4);
+  animation: wordLift var(--duration, 5400ms) ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+.thought-space {
+  width: var(--space, 0.5em);
+  opacity: 0.55;
+  animation: wordLift var(--duration, 5400ms) ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+.thought-break {
+  width: 100%;
+  height: 0;
+  opacity: 0;
+  animation: wordLift var(--duration, 5400ms) ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes wordLift {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(var(--scale, 1)) rotate(0deg);
+  }
+  to {
+    opacity: var(--opacity-end, 0);
+    transform: translate3d(var(--dx, 0px), var(--dy, -160px), 0)
+      scale(var(--scale, 1))
+      rotate(var(--rotation, 0deg));
+    filter: blur(var(--blur-end, 1.5px)) hue-rotate(var(--hue-end, 0deg));
+  }
+}
+
+@media (max-width: 560px) {
+  #scene {
+    padding: clamp(20px, 7vw, 32px);
+  }
+
+  .thoughts-shell {
+    padding: clamp(18px, 7vw, 36px);
+  }
+
+  #thoughts {
+    max-width: 100%;
+    min-height: clamp(60px, 18vw, 140px);
+  }
+
+  .nav-buttons {
+    top: 16px;
+    right: 16px;
+  }
+
+  .modal-panel {
+    width: min(540px, 94vw);
+    max-height: 85vh;
+    padding: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
