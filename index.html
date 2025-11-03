@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Thoughts Room</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9Ijk2Ij7wn6SrPC90ZXh0Pjwvc3ZnPg=="
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="nav-buttons" role="group" aria-label="page controls">
+      <button
+        type="button"
+        id="about-toggle"
+        class="glass-button"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+      >
+        about
+      </button>
+      <button
+        type="button"
+        id="music-toggle"
+        class="glass-button"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+      >
+        music
+      </button>
+      <button
+        type="button"
+        id="animations-toggle"
+        class="glass-button"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+      >
+        animations
+      </button>
+    </div>
+
+    <div id="scene">
+      <div class="sky" aria-hidden="true">
+        <div class="stars"></div>
+      </div>
+
+      <header class="thoughts-shell">
+        <textarea
+          id="thoughts"
+          maxlength="240"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="none"
+        ></textarea>
+      </header>
+
+      <div id="thought-layer" aria-hidden="true"></div>
+    </div>
+
+    <div
+      id="about-modal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="about-title"
+    >
+      <div class="modal-backdrop" data-modal-close></div>
+      <div class="modal-panel">
+        <header class="modal-header">
+          <h2 id="about-title">the thoughts room</h2>
+          <button type="button" class="modal-close" data-modal-close aria-label="close about">
+            ×
+          </button>
+        </header>
+        <div class="modal-body">
+          <p>
+            This is a room for you to let your thoughts flow out of your head and into the stars. You can type your thoughts into the text area and press enter to release them. You can alter the sounds and the animations to your liking.
+          </p>
+          <p>
+            It is completely free, open source, and lives entirely in your browser. Read, fork, or contribute on
+            <a href="https://github.com/josh-swerdlow/thoughts-room" target="_blank" rel="noreferrer noopener">GitHub</a>.
+          </p>
+          <p>
+            This is a remake of the thoughts room from "The Quiet Place" project. Created by https://x.com/amitayt.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="music-modal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="music-title"
+    >
+      <div class="modal-backdrop" data-modal-close></div>
+      <div class="modal-panel">
+        <header class="modal-header">
+          <h2 id="music-title">music</h2>
+          <button type="button" class="modal-close" data-modal-close aria-label="close music">
+            ×
+          </button>
+        </header>
+        <form id="music-form" class="music-form">
+          <label class="slider-label">
+            <div class="slider-head">
+              <span>volume</span>
+              <span class="slider-value" data-volume-display></span>
+            </div>
+            <input
+              type="range"
+              id="music-volume"
+              min="0"
+              max="1"
+              step="0.01"
+              value="0.3"
+            />
+          </label>
+          <div class="music-controls">
+            <button type="button" id="music-toggle-mute" class="glass-button small">mute</button>
+            <button type="button" id="music-toggle-play" class="glass-button small">pause</button>
+          </div>
+          <label class="music-select">
+            audio track
+            <select id="music-track">
+              <option value="audio/deference-for-darkness-cut.m4a">Deference for Darkness</option>
+              <option value="audio/the-quiet-place.mp3">The Quiet Place</option>
+            </select>
+          </label>
+        </form>
+      </div>
+    </div>
+
+    <div
+      id="animations-modal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="animations-title"
+    >
+      <div class="modal-backdrop" data-modal-close></div>
+      <div class="modal-panel">
+        <header class="modal-header">
+          <h2 id="animations-title">animations</h2>
+          <button type="button" class="modal-close" data-modal-close aria-label="close animations">
+            ×
+          </button>
+        </header>
+        <form id="animations-form" class="modal-form" data-settings-form>
+          <div class="modal-sections" data-settings-container>
+            <p class="modal-hint" data-settings-placeholder>Loading settings…</p>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="animations-reset">reset to defaults</button>
+            <button type="button" data-modal-close>done</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <audio id="bg-audio" autoplay loop preload="auto" src="audio/deference-for-darkness-cut.m4a"></audio>
+
+    <script id="animation-settings-data" type="application/json">
+      {
+        "sections": [
+          {
+            "id": "timing",
+            "title": "Timing",
+            "prompt": "How long do your thoughts stay",
+            "fields": [
+              {
+                "path": "duration.base",
+                "label": "base duration",
+                "prompt": "Sets the minimum time a thought stays visible before drifting away.",
+                "type": "range",
+                "default": 4.2,
+                "min": 0,
+                "max": 5,
+                "absoluteMin": 0,
+                "absoluteMax": 5,
+                "step": 0.1,
+                "unit": "seconds",
+                "public": true
+              },
+              {
+                "path": "duration.random",
+                "label": "duration randomness",
+                "prompt": "Adds additional random lifetime to each thought.",
+                "type": "range",
+                "default": 2.6,
+                "min": 0,
+                "max": 3,
+                "absoluteMin": 0,
+                "absoluteMax": 3,
+                "step": 0.1,
+                "unit": "seconds",
+                "public": false
+              },
+              {
+                "path": "delay.max",
+                "label": "max delay",
+                "prompt": "Controls stagger before individual words begin drifting.",
+                "type": "range",
+                "default": 0.36,
+                "min": 0,
+                "max": 1,
+                "absoluteMin": 0,
+                "absoluteMax": 1,
+                "step": 0.01,
+                "unit": "seconds",
+                "public": true
+              },
+              {
+                "path": "delay.lineStep",
+                "label": "line delay",
+                "prompt": "Extra delay between lines when multiple lines are released.",
+                "type": "range",
+                "default": 0.45,
+                "min": 0,
+                "max": 1,
+                "absoluteMin": 0,
+                "absoluteMax": 1,
+                "step": 0.01,
+                "unit": "seconds",
+                "public": false
+              }
+            ]
+          },
+          {
+            "id": "travel",
+            "title": "Travel",
+            "prompt": "How far your thoughts travel",
+            "fields": [
+              {
+                "path": "travel.vertical.base",
+                "label": "vertical base (px)",
+                "prompt": "Minimum upward travel distance for each thought.",
+                "type": "range",
+                "default": { "type": "dynamic", "key": "viewportHeight", "scale": 0.7, "fallback": 110, "round": true },
+                "min": 0,
+                "max": { "type": "dynamic", "key": "viewportHeight" },
+                "absoluteMin": 0,
+                "absoluteMax": { "type": "dynamic", "key": "viewportHeight" },
+                "step": 5,
+                "unit": "pixels",
+                "public": true
+              },
+              {
+                "path": "travel.vertical.random",
+                "label": "vertical randomness (px)",
+                "prompt": "Extra random upward distance.",
+                "type": "range",
+                "default": 220,
+                "min": 0,
+                "max": { "type": "dynamic", "key": "viewportHeight" },
+                "absoluteMin": 0,
+                "absoluteMax": { "type": "dynamic", "key": "viewportHeight" },
+                "step": 5,
+                "unit": "pixels",
+                "public": false
+              },
+              {
+                "path": "travel.horizontal.ratio",
+                "label": "horizontal ratio",
+                "prompt": "Fraction of a thought's width used for horizontal drift. Combined with horizontal min to determine total drift.",
+                "type": "range",
+                "default": 0.28,
+                "min": 0,
+                "max": 1,
+                "absoluteMin": 0,
+                "absoluteMax": 1,
+                "step": 0.01,
+                "unit": "ratio",
+                "public": false
+              },
+              {
+                "path": "travel.horizontal.min",
+                "label": "horizontal min (px)",
+                "prompt": "Minimum horizontal drift distance. Higher values pull thoughts toward the centre.",
+                "type": "range",
+                "default": { "type": "dynamic", "key": "viewportWidth", "scale": 0.5, "fallback": 600, "round": true },
+                "min": 0,
+                "max": { "type": "dynamic", "key": "viewportWidth" },
+                "absoluteMin": 0,
+                "absoluteMax": { "type": "dynamic", "key": "viewportWidth" },
+                "step": 5,
+                "unit": "pixels",
+                "public": true
+              },
+              {
+                "path": "travel.fadeBufferRatio",
+                "label": "fade buffer ratio",
+                "prompt": "Fraction of screen height appended to travel so thoughts continue drifting while fading.",
+                "type": "range",
+                "default": 0.18,
+                "min": 0,
+                "max": 0.6,
+                "absoluteMin": 0,
+                "absoluteMax": 1,
+                "step": 0.01,
+                "unit": "ratio",
+                "public": false
+              }
+            ]
+          },
+          {
+            "id": "velocity",
+            "title": "Velocity",
+            "prompt": "How fast your thoughts travel",
+            "fields": [
+              {
+                "path": "velocity.average",
+                "label": "average velocity",
+                "prompt": "Average multiplier applied to travel distances.",
+                "type": "range",
+                "default": 1.125,
+                "min": 0.1,
+                "max": 2.5,
+                "absoluteMin": 0.1,
+                "absoluteMax": 2.5,
+                "step": 0.05,
+                "unit": "ratio",
+                "public": true
+              },
+              {
+                "path": "erratic.rotationMax",
+                "label": "rotation max (deg)",
+                "prompt": "Maximum random rotation applied to fragments.",
+                "type": "range",
+                "default": 10,
+                "min": 0,
+                "max": 25,
+                "absoluteMin": 0,
+                "absoluteMax": 45,
+                "step": 1,
+                "unit": "degrees",
+                "public": true
+              }
+            ]
+          },
+          {
+            "id": "filters",
+            "title": "Filters & Opacity",
+            "prompt": "Fine-grained visual tuning.",
+            "fields": [
+              {
+                "path": "filter.blur.startMin",
+                "label": "blur start min (px)",
+                "prompt": "Minimum blur applied when a fragment appears.",
+                "type": "range",
+                "default": 0.2,
+                "min": 0,
+                "max": 2,
+                "absoluteMin": 0,
+                "absoluteMax": 4,
+                "step": 0.05,
+                "unit": "pixels",
+                "public": false
+              },
+              {
+                "path": "filter.blur.startMax",
+                "label": "blur start max (px)",
+                "prompt": "Maximum blur applied when a fragment appears.",
+                "type": "range",
+                "default": 0.8,
+                "min": 0,
+                "max": 2,
+                "absoluteMin": 0,
+                "absoluteMax": 4,
+                "step": 0.05,
+                "unit": "pixels",
+                "public": false
+              },
+              {
+                "path": "filter.blur.endMin",
+                "label": "blur end min (px)",
+                "prompt": "Minimum blur applied when a fragment leaves.",
+                "type": "range",
+                "default": 1.2,
+                "min": 0,
+                "max": 3,
+                "absoluteMin": 0,
+                "absoluteMax": 5,
+                "step": 0.05,
+                "unit": "pixels",
+                "public": false
+              },
+              {
+                "path": "filter.blur.endMax",
+                "label": "blur end max (px)",
+                "prompt": "Maximum blur applied when a fragment leaves.",
+                "type": "range",
+                "default": 2.6,
+                "min": 0,
+                "max": 4,
+                "absoluteMin": 0,
+                "absoluteMax": 6,
+                "step": 0.05,
+                "unit": "pixels",
+                "public": false
+              },
+              {
+                "path": "filter.hue.startMin",
+                "label": "hue start min (deg)",
+                "prompt": "Minimum hue shift when a fragment appears.",
+                "type": "range",
+                "default": -6,
+                "min": -45,
+                "max": 45,
+                "absoluteMin": -90,
+                "absoluteMax": 90,
+                "step": 1,
+                "unit": "degrees",
+                "public": false
+              },
+              {
+                "path": "filter.hue.startMax",
+                "label": "hue start max (deg)",
+                "prompt": "Maximum hue shift when a fragment appears.",
+                "type": "range",
+                "default": 6,
+                "min": -45,
+                "max": 45,
+                "absoluteMin": -90,
+                "absoluteMax": 90,
+                "step": 1,
+                "unit": "degrees",
+                "public": false
+              },
+              {
+                "path": "filter.hue.endMin",
+                "label": "hue end min (deg)",
+                "prompt": "Minimum hue shift when a fragment leaves.",
+                "type": "range",
+                "default": -18,
+                "min": -90,
+                "max": 90,
+                "absoluteMin": -120,
+                "absoluteMax": 120,
+                "step": 1,
+                "unit": "degrees",
+                "public": false
+              },
+              {
+                "path": "filter.hue.endMax",
+                "label": "hue end max (deg)",
+                "prompt": "Maximum hue shift when a fragment leaves.",
+                "type": "range",
+                "default": 18,
+                "min": -90,
+                "max": 90,
+                "absoluteMin": -120,
+                "absoluteMax": 120,
+                "step": 1,
+                "unit": "degrees",
+                "public": false
+              },
+              {
+                "path": "opacity.startMin",
+                "label": "opacity start min",
+                "prompt": "Minimum opacity when fragments appear.",
+                "type": "range",
+                "default": 0.75,
+                "min": 0,
+                "max": 1,
+                "absoluteMin": 0,
+                "absoluteMax": 1,
+                "step": 0.05,
+                "unit": "ratio",
+                "public": false
+              },
+              {
+                "path": "opacity.startMax",
+                "label": "opacity start max",
+                "prompt": "Maximum opacity when fragments appear.",
+                "type": "range",
+                "default": 1,
+                "min": 0,
+                "max": 1,
+                "absoluteMin": 0,
+                "absoluteMax": 1,
+                "step": 0.05,
+                "unit": "ratio",
+                "public": false
+              },
+              {
+                "path": "opacity.endMin",
+                "label": "opacity end min",
+                "prompt": "Minimum opacity when fragments leave.",
+                "type": "range",
+                "default": 0.05,
+                "min": 0,
+                "max": 1,
+                "absoluteMin": 0,
+                "absoluteMax": 1,
+                "step": 0.05,
+                "unit": "ratio",
+                "public": false
+              },
+              {
+                "path": "opacity.endMax",
+                "label": "opacity end max",
+                "prompt": "Maximum opacity when fragments leave.",
+                "type": "range",
+                "default": 0.3,
+                "min": 0,
+                "max": 1,
+                "absoluteMin": 0,
+                "absoluteMax": 1,
+                "step": 0.05,
+                "unit": "ratio",
+                "public": false
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+    <script src="main.js"></script>
+  </body>
+</html>
