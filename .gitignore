@@ -1,3 +1,5 @@
+node_modules/
+dist/*.map
 # Temporary AI Generated Files
 .playwright-mcp/
 

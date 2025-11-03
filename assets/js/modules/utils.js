@@ -47,3 +47,44 @@ export const applyConfig = (target, source) => {
   });
 };
 
+export const getViewportMetrics = () => {
+  if (typeof window === "undefined") {
+    return {
+      width: 0,
+      height: 0,
+      scale: 1,
+      offsetTop: 0,
+      offsetBottom: 0,
+      isKeyboardVisible: false,
+    };
+  }
+
+  const innerWidth = window.innerWidth || 0;
+  const innerHeight = window.innerHeight || 0;
+  const visual = window.visualViewport;
+
+  if (!visual) {
+    return {
+      width: innerWidth,
+      height: innerHeight,
+      scale: 1,
+      offsetTop: 0,
+      offsetBottom: 0,
+      isKeyboardVisible: false,
+    };
+  }
+
+  const offsetTop = typeof visual.offsetTop === "number" ? visual.offsetTop : 0;
+  const offsetBottom = Math.max(innerHeight - (visual.height + offsetTop), 0);
+  const isKeyboardVisible = offsetBottom > 0 || visual.height < innerHeight;
+
+  return {
+    width: visual.width,
+    height: visual.height,
+    scale: typeof visual.scale === "number" ? visual.scale : 1,
+    offsetTop,
+    offsetBottom,
+    isKeyboardVisible,
+  };
+};
+

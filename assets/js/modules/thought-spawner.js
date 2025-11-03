@@ -1,4 +1,4 @@
-import { randomBetween } from "./utils.js";
+import { randomBetween, getViewportMetrics } from "./utils.js";
 
 const DEFAULT_PROMPT_TEXT =
   "This is your thoughts room. Type out your thoughts in this box and then watch them float away when you press enter.";
@@ -47,7 +47,9 @@ export const initThoughtSpawner = ({
       boxRect.width * animationConfig.travel.horizontal.ratio,
       animationConfig.travel.horizontal.min,
     );
-    const fadeBuffer = (window.innerHeight || 0) * (animationConfig.travel.fadeBufferRatio || 0.18);
+    const viewportMetrics = getViewportMetrics();
+    const visibleHeight = viewportMetrics.height || window.innerHeight || 0;
+    const fadeBuffer = visibleHeight * (animationConfig.travel.fadeBufferRatio || 0.18);
 
     const registerAnimation = (el, lineNumber = 0) => {
       const durationSeconds =
@@ -59,8 +61,9 @@ export const initThoughtSpawner = ({
       const delay = delaySeconds * 1000;
       const velocity = animationConfig.velocity.average || 0.6;
 
-      const screenHeight = window.innerHeight || 1080;
-      const minDistanceFromTextBox = screenHeight * 0.3;
+      const screenHeight = visibleHeight || window.innerHeight || 1080;
+      const keyboardMultiplier = viewportMetrics.isKeyboardVisible ? 0.6 : 0.35;
+      const minDistanceFromTextBox = Math.max(screenHeight * keyboardMultiplier, 160);
 
       let baseVerticalTravel =
         animationConfig.travel.vertical.base +
@@ -207,8 +210,9 @@ export const initThoughtSpawner = ({
       }
 
       const thoughtRect = thought.getBoundingClientRect();
-      const screenHeight = window.innerHeight || 0;
-      const screenWidth = window.innerWidth || 0;
+      const viewportBounds = getViewportMetrics();
+      const screenHeight = viewportBounds.height || window.innerHeight || 0;
+      const screenWidth = viewportBounds.width || window.innerWidth || 0;
       const spawnTime = Number(thought.dataset.spawnTime) || Date.now();
 
       const isOffScreenTop = thoughtRect.bottom < 0;

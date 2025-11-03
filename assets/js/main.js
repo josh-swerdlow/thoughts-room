@@ -1,6 +1,10 @@
 import { initPromptGlow } from "./modules/prompt-glow.js";
 import { initBackgrounds } from "./modules/backgrounds.js";
-import { initAnimationControls, animationConfig } from "./modules/animation-config.js";
+import {
+  initAnimationControls,
+  animationConfig,
+  ensureAnimationConfigDefaults,
+} from "./modules/animation-config.js";
 import { initThoughtSpawner } from "./modules/thought-spawner.js";
 import { initAudioControls } from "./modules/audio.js";
 import { initModals } from "./modules/modals.js";
@@ -13,6 +17,8 @@ const skyElement = document.querySelector(".stars");
 initPromptGlow(thoughtInput);
 
 initBackgrounds({ skyElement });
+
+ensureAnimationConfigDefaults();
 
 const audioControls = initAudioControls();
 

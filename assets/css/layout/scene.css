@@ -28,7 +28,7 @@
   inset: 0;
   pointer-events: none;
   background-color: #020311;
-  background-image: url("../../images/hubble-m44.webp");
+  background-image: url("/images/hubble-m44.webp");
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;

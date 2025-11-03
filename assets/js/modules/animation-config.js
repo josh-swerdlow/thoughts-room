@@ -1,4 +1,10 @@
-import { applyConfig, clamp, ensureOrder, formatSeconds } from "./utils.js";
+import {
+  applyConfig,
+  clamp,
+  ensureOrder,
+  formatSeconds,
+  getViewportMetrics,
+} from "./utils.js";
 
 const DEFAULT_ANIMATION = {
   duration: {
@@ -55,6 +61,7 @@ const settingsConstraints = new Map();
 let settingsSchema = null;
 let animationsFormEl = null;
 let animationsResetEl = null;
+let defaultsInitialized = false;
 
 const getNestedValue = (target, path) => {
   return path.split(".").reduce((cursor, segment) => {
@@ -91,14 +98,17 @@ const resolveDynamicBound = (bound) => {
     const scale = typeof bound.scale === "number" ? bound.scale : 1;
     const fallback = typeof bound.fallback === "number" ? bound.fallback : 0;
     const round = bound.round === true;
+    const metrics = getViewportMetrics();
+    const innerWidth = typeof window !== "undefined" ? window.innerWidth || 0 : 0;
+    const innerHeight = typeof window !== "undefined" ? window.innerHeight || 0 : 0;
 
     let value;
     switch (bound.key) {
       case "viewportHeight":
-        value = Math.max((window.innerHeight || fallback) * scale, 0);
+        value = Math.max((metrics.height || innerHeight || fallback) * scale, 0);
         break;
       case "viewportWidth":
-        value = Math.max((window.innerWidth || fallback) * scale, 0);
+        value = Math.max((metrics.width || innerWidth || fallback) * scale, 0);
         break;
       default:
         return undefined;
@@ -190,6 +200,23 @@ const loadInlineSettingsSchema = () => {
   }
 
   return null;
+};
+
+export const ensureAnimationConfigDefaults = () => {
+  if (defaultsInitialized) {
+    return;
+  }
+
+  const inlineSchema = loadInlineSettingsSchema();
+  if (inlineSchema) {
+    settingsSchema = inlineSchema;
+    registerSchemaDefaults(inlineSchema);
+    defaultsInitialized = true;
+    return;
+  }
+
+  normalizeAnimationConfig(animationConfig);
+  defaultsInitialized = true;
 };
 
 const createFieldControl = (field) => {
@@ -400,7 +427,7 @@ const updateSliderDisplay = (path, value, unit = "") => {
 };
 
 const updateDynamicBounds = () => {
-  if (!settingsSchema || !animationsFormEl) {
+  if (!settingsSchema) {
     return;
   }
 
@@ -422,7 +449,9 @@ const updateDynamicBounds = () => {
   });
 
   normalizeAnimationConfig(animationConfig);
-  populateAnimationsForm();
+  if (animationsFormEl) {
+    populateAnimationsForm();
+  }
 };
 
 const initializeSettings = async () => {
@@ -436,6 +465,7 @@ const initializeSettings = async () => {
   const applySchema = (schema) => {
     settingsSchema = schema;
     registerSchemaDefaults(schema);
+    defaultsInitialized = true;
     buildAnimationsForm(schema);
     updateDynamicBounds();
   };
@@ -520,12 +550,19 @@ export const initAnimationControls = ({
   animationsResetEl?.addEventListener("click", resetToDefaults);
 
   initializeSettings();
-  window.addEventListener("resize", () => {
+  const handleViewportChange = () => {
     if (!settingsSchema) {
       return;
     }
     updateDynamicBounds();
-  });
+  };
+
+  window.addEventListener("resize", handleViewportChange);
+
+  if (typeof window !== "undefined" && window.visualViewport) {
+    window.visualViewport.addEventListener("resize", handleViewportChange);
+    window.visualViewport.addEventListener("scroll", handleViewportChange);
+  }
 
   populateAnimationsForm();
 

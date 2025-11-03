@@ -1,0 +1,18 @@
+{
+  "name": "thoughts-room",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:js && npm run build:css",
+    "build:js": "esbuild assets/js/main.js --bundle --format=esm --target=es2019 --outdir=dist --minify --sourcemap --legal-comments=none",
+    "build:css": "esbuild assets/css/main.css --bundle --outdir=dist --minify --legal-comments=none --loader:.webp=file --external:/images/*",
+    "dev": "npm-run-all --parallel dev:js dev:css",
+    "dev:js": "esbuild assets/js/main.js --bundle --format=esm --target=es2019 --outdir=dist --sourcemap --legal-comments=none --watch",
+    "dev:css": "esbuild assets/css/main.css --bundle --outdir=dist --legal-comments=none --loader:.webp=file --external:/images/* --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.5",
+    "npm-run-all": "^4.1.5"
+  }
+}
+

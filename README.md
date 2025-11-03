@@ -21,6 +21,9 @@ Recreation of the classic “Thoughts Room” experience: a single-page, client-
 thoughts-room/
 ├── index.html
 ├── animation-settings.json
+├── dist/
+│   ├── main.css
+│   └── main.js
 ├── assets/
 │   ├── css/
 │   │   ├── main.css
@@ -28,26 +31,29 @@ thoughts-room/
 │   │   │   ├── tokens.css
 │   │   │   ├── reset.css
 │   │   │   └── typography.css
-│   │   ├── layout/scene.css
+│   │   ├── layout/
+│   │   │   └── scene.css
 │   │   ├── components/
 │   │   │   ├── navigation.css
 │   │   │   ├── modal.css
 │   │   │   ├── music.css
-│   │   │   ├── thought-input.css
+│   │   │   ├── textarea.css
 │   │   │   └── thoughts.css
-│   │   └── utilities/responsive.css
+│   │   └── utilities/
+│   │       └── responsive.css
 │   └── js/
 │       ├── main.js
 │       └── modules/
-│           ├── prompt-glow.js
-│           ├── backgrounds.js
 │           ├── animation-config.js
-│           ├── thought-spawner.js
 │           ├── audio.js
+│           ├── backgrounds.js
 │           ├── modals.js
+│           ├── prompt-glow.js
+│           ├── thought-spawner.js
 │           └── utils.js
 ├── images/
-└── audio/
+├── audio/
+└── package.json
 ```
 
 ### CSS organization
@@ -73,11 +79,15 @@ thoughts-room/
 ## Running Locally
 
 ```bash
+npm install
+npm run build
+# or for watch mode:
+npm run dev
 python3 -m http.server 8000
 # then visit http://localhost:8000
 ```
 
-Opening `index.html` directly also works, but some browsers block `fetch` for local JSON—serving avoids that.
+Use `npm run dev` during development to keep `dist/` updated as you edit `assets/`. Otherwise, run `npm run build` again whenever you change source files. Opening `index.html` directly also works, but some browsers block `fetch` for local JSON—serving avoids that.
 
 ### Audio setup
 
@@ -101,8 +111,8 @@ Opening `index.html` directly also works, but some browsers block `fetch` for lo
 
 ## Deployment Notes
 
-- Static-friendly (works on major static hosting platforms). No build step.
-- Ensure `audio/` and `images/` directories are published with the site.
+- Static-friendly (works on major static hosting platforms). Run `npm run build` before deploying so the `dist/` bundle stays current.
+- Ensure `dist/`, `audio/`, and `images/` directories are published with the site.
 - Autoplay policies vary; the script retries playback on first user gesture if blocked.
 
 ---
