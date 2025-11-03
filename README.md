@@ -1,50 +1,115 @@
-# The Quiet Place (shhhh.space)
+# Thoughts Room (Modern Remake)
 
-Recreation of the classic “Quiet Place / Thoughts Room” experience: a single-page, static site where visitors can exhale their thoughts into a star-soaked sky and watch each word drift away while gentle ambience plays. Everything runs client-side for an anonymous, ephemeral moment of calm.
+Recreation of the classic “Thoughts Room” experience: a single-page, client-side sanctuary where visitors type their thoughts, release them into a cosmic sky, and watch each fragment drift away with gentle ambience. No persistence, no accounts—just a moment of quiet.
 
-## What you’ll find
+---
 
-- **Starfield sanctuary** – A full-viewport Milky Way backdrop randomly chosen from the `/images` collection each visit.
-- **Thoughts drift mechanic** – Type into the glassy bottom bar and press `Enter`; every word floats upward, fading per-letter with randomized velocity, blur, colour shift, and opacity.
-- **Background score** – Autoplayed looping audio (`/audio/the-quiet-place.mp3`, add your own licensed track to ship).
-- **Onboarding prompt** – The textarea starts with a soft invitation that releases itself as the first floating thought.
-- **Interactive tuning** – A client-side settings palette that lets you tweak animation duration (in seconds), travel distances, velocity spread, rotation, scale, filters, opacity ranges, and removal timing without touching the code.
-- **Zero persistence** – No backend, no analytics, no storage.
+## Feature Overview
 
-## Project structure
+- **Floating thoughts** – Input is tokenized into words/spaces; each fragment receives randomized travel, blur, hue shift, opacity, and floor-to-sky animation values.
+- **Liquid glass UI** – Navigation buttons and modal panes use translucent gradients + blur so the background remains the star.
+- **Ambient audio** – Autoplaying background track with mute, play/pause, volume, and track-switch controls.
+- **Live animation tuning** – A settings modal lets you adjust duration, delay, travel distances, velocity, rotation, filters, opacity ranges, and reset to defaults instantly.
+- **Responsive & accessible** – Fluid typography, clamp() spacing, `min(100vh, 100dvh)` layout compensation, and keyboard-friendly modals with focus restoration.
+- **Zero storage** – Everything lives in memory; reloading starts a fresh session.
+
+---
+
+## Directory Layout
 
 ```
-/
-├── index.html          # Page markup, moonless sky scene, settings dialog scaffold
-├── style.css           # Gradient night theme, floating thought animation, settings UI styles
-├── main.js             # Thought spawning logic, audio fade-in, prompt handling, settings bindings
-├── images/             # Starfield assets (background.jpg, hubble-m44.webp, hubble-m48.webp, wild-duck-cluster.webp)
-└── audio/              # Expected location for the-quiet-place.mp3 (not included; provide your own)
+thoughts-room/
+├── index.html
+├── animation-settings.json
+├── assets/
+│   ├── css/
+│   │   ├── main.css
+│   │   ├── base/
+│   │   │   ├── tokens.css
+│   │   │   ├── reset.css
+│   │   │   └── typography.css
+│   │   ├── layout/scene.css
+│   │   ├── components/
+│   │   │   ├── navigation.css
+│   │   │   ├── modal.css
+│   │   │   ├── music.css
+│   │   │   ├── thought-input.css
+│   │   │   └── thoughts.css
+│   │   └── utilities/responsive.css
+│   └── js/
+│       ├── main.js
+│       └── modules/
+│           ├── prompt-glow.js
+│           ├── backgrounds.js
+│           ├── animation-config.js
+│           ├── thought-spawner.js
+│           ├── audio.js
+│           ├── modals.js
+│           └── utils.js
+├── images/
+└── audio/
 ```
 
-## Local usage
+### CSS organization
 
-1. Place a licensed MP3 at `audio/the-quiet-place.mp3`.
-2. Open `index.html` in any modern browser (or serve statically with `python3 -m http.server`).
-3. Start typing; press `Enter` to release a thought. The onboarding prompt disappears the moment you focus or type.
-4. Tap **settings** (top-right) to adjust animation behaviour live:
-   - Duration base / randomness
-   - Word launch delay window
-   - Vertical and horizontal travel
-   - Velocity & scale ranges
-   - Rotation limits
-   - Blur / hue shift ranges
-   - Opacity start/end windows
-   - Removal buffer & fallback time
-   - Reset anytime to return to the defaults captured in code.
+- `base/` – global design tokens (colors, spacing, motion), resets, and typography defaults.
+- `layout/scene.css` – core layout (sky container, thought-input shell).
+- `components/` – focused styles for UI elements (nav, thought input, modals, music controls, thoughts).
+- `utilities/responsive.css` – breakpoint-specific tweaks and `prefers-reduced-motion` overrides.
 
-All configuration is held in memory; reload resets the experience.
+### JavaScript organization
 
-## Deployment notes
+- `main.js` – entry; imports each module and boots them after DOM load.
+- `prompt-glow.js` – manages the idle thought-input pulse.
+- `backgrounds.js` – randomizes star-field imagery (preload + fallback).
+- `animation-config.js` – loads schema, normalizes config, syncs UI sliders.
+- `thought-spawner.js` – splits input strings, attaches CSS variables, schedules cleanup.
+- `audio.js` – playback controls, fade-in, track selection, autoplay fallback.
+- `modals.js` – open/close logic, aria attributes, focus restoration.
+- `utils.js` – shared helpers (`randomBetween`, `clamp`, `ensureOrder`, etc.).
 
-- Built to deploy as-is on static hosts (Cloudflare Pages, Vercel, Netlify). No build step required.
-- Ensure the `/audio` and `/images` assets are published with the site.
-- Autoplay policies vary; on first interaction the script attempts playback and gracefully re-tries after a user gesture if blocked.
+---
 
-Take a minute, type what you need, let the stars do the rest. 🪶
->>>>>>> master
+## Running Locally
+
+```bash
+python3 -m http.server 8000
+# then visit http://localhost:8000
+```
+
+Opening `index.html` directly also works, but some browsers block `fetch` for local JSON—serving avoids that.
+
+### Audio setup
+
+- Place licensed audio files in `audio/`.
+- Update `<select id="music-track">` inside `index.html`; the runtime reads options to populate the menu.
+
+### Animation settings
+
+- Defaults live in `animation-settings.json` (mirrored inline in `index.html` for offline use).
+- Adjust schema values (min/max/default/public) to expose additional sliders or change ranges.
+
+---
+
+## Reused Components
+
+- **Glass buttons & modals** – share gradient + blur recipes defined in `tokens.css`, reused in `navigation.css` and `modal.css` for consistency.
+- **Thought fragments** – `thought-spawner.js` and `thoughts.css` work together: JS assigns CSS variables, CSS handles animation details.
+- **Settings controls** – `animation-config.js` auto-generates form controls from the schema so UI stays in sync with config.
+
+---
+
+## Deployment Notes
+
+- Static-friendly (works on major static hosting platforms). No build step.
+- Ensure `audio/` and `images/` directories are published with the site.
+- Autoplay policies vary; the script retries playback on first user gesture if blocked.
+
+---
+
+## Credits
+
+- Inspired by [The Quiet Place Project – Thoughts Room](https://thequietplaceproject.com/thethoughtsroom)
+- Star-field imagery courtesy of NASA / Hubble
+- Ambient audio: “Deference for Darkness (cut)” (replace with your own licensed track as needed)
+- Recreated & maintained by Josh Swerdlow

@@ -1,0 +1,47 @@
+#scene {
+  position: relative;
+  width: 100%;
+  min-height: var(--layout-min-height);
+  padding: var(--space-section-y) var(--space-section-x);
+  display: grid;
+  place-items: center;
+}
+
+.sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--color-accent) 8%, transparent) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at bottom left,
+      color-mix(in srgb, var(--color-accent) 6%, transparent) 0%,
+      transparent 60%
+    );
+}
+
+.stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-color: #020311;
+  background-image: url("../../images/hubble-m44.webp");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.thoughts-shell {
+  position: fixed;
+  inset: auto 0 0 0;
+  padding: clamp(0.9rem, 0.6rem + 1vw, 2rem) clamp(1.4rem, 1.1rem + 3vw, 3.8rem)
+    clamp(1.4rem, 1rem + 2.5vw, 2.9rem);
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+

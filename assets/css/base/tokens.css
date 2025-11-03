@@ -1,0 +1,72 @@
+:root {
+  color-scheme: dark;
+
+  /* Typography */
+  --font-family-base: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-size-base: clamp(1rem, 0.95rem + 0.35vw, 1.125rem);
+  --font-size-sm: clamp(0.85rem, 0.8rem + 0.25vw, 0.95rem);
+  --font-size-lg: clamp(1.1rem, 1rem + 0.6vw, 1.35rem);
+  --font-size-xl: clamp(1.6rem, 1.2rem + 1.4vw, 2.35rem);
+  --line-height-base: 1.6;
+  --line-height-tight: 1.35;
+
+  /* Spacing scale */
+  --space-2xs: clamp(0.25rem, 0.2rem + 0.2vw, 0.4rem);
+  --space-xs: clamp(0.5rem, 0.4rem + 0.4vw, 0.75rem);
+  --space-sm: clamp(0.75rem, 0.6rem + 0.6vw, 1.1rem);
+  --space-md: clamp(1rem, 0.8rem + 1vw, 1.6rem);
+  --space-lg: clamp(1.5rem, 1rem + 1.8vw, 2.6rem);
+  --space-xl: clamp(2.5rem, 1.6rem + 3.4vw, 4.25rem);
+
+  --space-section-y: clamp(2.5rem, 1.6rem + 4vw, 5rem);
+  --space-section-x: clamp(1.5rem, 1rem + 4vw, 4rem);
+  --space-nav-offset-y: clamp(0.9rem, 0.6rem + 1vw, 2rem);
+  --space-nav-offset-x: clamp(1rem, 0.7rem + 1vw, 2.2rem);
+
+  /* Radii & blur */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.125rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 999px;
+
+  --blur-glass: 14px;
+  --blur-modal: 24px;
+
+  /* Motion */
+  --motion-duration-sm: 150ms;
+  --motion-duration-md: 320ms;
+  --motion-duration-lg: 600ms;
+  --motion-ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Lighting & surfaces */
+  --color-surface-primary: #020313;
+  --color-surface-elevated: color-mix(in srgb, #101426 86%, transparent);
+  --color-surface-backdrop: color-mix(in srgb, var(--color-surface-primary) 70%, transparent);
+  --color-surface-glass: color-mix(in srgb, var(--color-surface-elevated) 60%, transparent);
+
+  /* Color tokens */
+  --color-text-primary: #eef1ff;
+  --color-text-muted: color-mix(in srgb, var(--color-text-primary) 70%, transparent);
+  --color-text-subtle: color-mix(in srgb, var(--color-text-primary) 55%, transparent);
+  --color-accent: #768eff;
+  --color-accent-contrast: #040615;
+  --color-outline: color-mix(in srgb, var(--color-text-primary) 15%, transparent);
+  --color-glow: color-mix(in srgb, var(--color-accent) 60%, transparent);
+  --color-border-glass: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  --color-warning: light-dark(#b00020, #ff8b8b);
+
+  /* Effects */
+  --shadow-soft: 0 0 22px color-mix(in srgb, #000 25%, transparent);
+  --shadow-elevated: 0 20px 60px color-mix(in srgb, #000 45%, transparent);
+
+  /* Layout helpers */
+  --layout-min-height: min(100vh, 100dvh);
+  --thought-blur-light: clamp(0.25px, 0.2px + 0.4vw, 1px);
+  --thought-blur-heavy: clamp(1px, 0.8px + 1vw, 2.6px);
+}
+
+@custom-media --bp-sm (width >= 30rem);
+@custom-media --bp-md (width >= 48rem);
+@custom-media --bp-lg (width >= 64rem);
+

@@ -1,0 +1,80 @@
+#thought-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.thought {
+  position: absolute;
+  left: var(--left, 0px);
+  top: var(--top, 0px);
+  width: var(--width, auto);
+  --scale: 1;
+  --rotation: 0deg;
+  color: color-mix(in srgb, var(--color-text-primary) 94%, transparent);
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--color-text-primary) 25%, transparent);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--color-glow) 45%, transparent));
+  opacity: 1;
+}
+
+.thought-words {
+  display: inline;
+}
+
+.thought-word,
+.thought-space,
+.thought-break {
+  display: inline-block;
+  white-space: pre;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  pointer-events: none;
+  user-select: none;
+  transform: translate3d(0, 0, 0) scale(var(--scale, 1)) rotate(var(--rotation, 0deg));
+  opacity: var(--opacity-start, 1);
+  filter: blur(var(--blur-start, var(--thought-blur-light))) hue-rotate(var(--hue-start, 0deg));
+}
+
+.thought-word {
+  color: inherit;
+  text-shadow: 0 0 22px color-mix(in srgb, var(--color-text-primary) 30%, transparent);
+  animation: wordLift var(--duration, 5400ms) ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+.thought-space {
+  width: var(--space, 0.5em);
+  opacity: 0.55;
+  animation: wordLift var(--duration, 5400ms) ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+.thought-break {
+  width: 100%;
+  height: 0;
+  opacity: 0;
+  animation: wordLift var(--duration, 5400ms) ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes wordLift {
+  0% {
+    opacity: var(--opacity-start, 1);
+    transform: translate3d(0, 0, 0) scale(var(--scale, 1)) rotate(0deg);
+    filter: blur(var(--blur-start, var(--thought-blur-light))) hue-rotate(var(--hue-start, 0deg));
+  }
+  to {
+    opacity: var(--opacity-end, 0);
+    transform: translate3d(var(--dx, 0px), var(--dy, -160px), 0)
+      scale(var(--scale, 1))
+      rotate(var(--rotation, 0deg));
+    filter: blur(var(--blur-end, var(--thought-blur-heavy))) hue-rotate(var(--hue-end, 0deg));
+  }
+}
+

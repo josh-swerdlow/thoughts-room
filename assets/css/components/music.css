@@ -1,0 +1,35 @@
+.music-form {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.music-controls {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.music-select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: var(--color-text-primary);
+}
+
+.music-select select {
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-glass);
+  background: color-mix(in srgb, var(--color-surface-glass) 85%, transparent);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+}
+
+.music-select select:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
