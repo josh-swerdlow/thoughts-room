@@ -643,7 +643,7 @@ var initAnimationControls = ({
 };
 
 // assets/js/modules/thought-spawner.js
-var DEFAULT_PROMPT_TEXT = "This is your thoughts room. Type out your thoughts in this box and then watch them float away when you press enter.";
+var DEFAULT_PROMPT_TEXT = "Type out your thoughts in this box and then watch them float away when you press enter.";
 var initThoughtSpawner = ({
   scene: scene2,
   thoughtInput: thoughtInput2,

@@ -1,7 +1,7 @@
 import { randomBetween, getViewportMetrics } from "./utils.js";
 
 const DEFAULT_PROMPT_TEXT =
-  "This is your thoughts room. Type out your thoughts in this box and then watch them float away when you press enter.";
+  "Type out your thoughts in this box and then watch them float away when you press enter.";
 
 export const initThoughtSpawner = ({
   scene,
