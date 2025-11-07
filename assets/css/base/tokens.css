@@ -7,8 +7,17 @@
   --font-size-sm: clamp(0.85rem, 0.8rem + 0.25vw, 0.95rem);
   --font-size-lg: clamp(1.1rem, 1rem + 0.6vw, 1.35rem);
   --font-size-xl: clamp(1.6rem, 1.2rem + 1.4vw, 2.35rem);
+  --font-size-interactive-base: clamp(1rem, 0.9rem + 1vw, 1.35rem);
+  --font-size-interactive-sm: calc(var(--font-size-interactive-base) * 0.78);
+  --font-size-interactive-xs: calc(var(--font-size-interactive-base) * 0.68);
+  --font-size-interactive-lg: calc(var(--font-size-interactive-base) * 1.15);
+  --font-size-interactive-xl: calc(var(--font-size-interactive-base) * 1.32);
   --line-height-base: 1.6;
   --line-height-tight: 1.35;
+
+  --viewport-visible-height: 100vh;
+  --viewport-visible-unit: 1vh;
+  --viewport-offset-bottom: 0px;
 
   /* Spacing scale */
   --space-2xs: clamp(0.25rem, 0.2rem + 0.2vw, 0.4rem);

@@ -10,11 +10,48 @@
   #thoughts {
     max-width: 100%;
     min-height: clamp(3.75rem, 2.8rem + 10vw, 6.5rem);
+    font-size: var(--font-size-interactive-base);
   }
 
   .nav-buttons {
-    top: clamp(0.6rem, 0.4rem + 1vw, 1rem);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2xs);
+    top: calc(clamp(0.6rem, 0.4rem + 1vw, 1rem) + var(--viewport-offset-top, 0px));
     right: clamp(0.8rem, 0.5rem + 1vw, 1.4rem);
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+  }
+
+  .nav-actions {
+    width: clamp(8rem, 30vw, 10rem);
+    margin-top: var(--space-2xs);
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2xs);
+    padding: var(--space-xs);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-glass);
+    background: color-mix(in srgb, var(--color-surface-glass) 92%, transparent);
+    backdrop-filter: blur(var(--blur-glass));
+    box-shadow: var(--shadow-soft);
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate3d(0, -6px, 0);
+    transition:
+      opacity var(--motion-duration-md) var(--motion-ease-emphasized),
+      transform var(--motion-duration-md) var(--motion-ease-emphasized);
+  }
+
+  .nav-buttons.is-open .nav-actions {
+    transform: translate3d(0, 0, 0);
+  }
+
+  .nav-actions .glass-button {
+    width: 100%;
   }
 
   .modal-panel {
@@ -32,6 +69,14 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Exclude thought animations - they are the core feature of this app */
+  .thought-word,
+  .thought-space,
+  .thought-break {
+    animation-duration: revert !important;
+    animation-iteration-count: revert !important;
   }
 }
 

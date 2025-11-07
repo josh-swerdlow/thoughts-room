@@ -8,17 +8,18 @@
   background: var(--color-surface-glass);
   backdrop-filter: blur(var(--blur-glass));
   color: var(--color-text-primary);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-interactive-lg);
   letter-spacing: 0.05em;
   line-height: var(--line-height-tight);
-  min-height: clamp(3rem, 2.8rem + 8vw, 6.25rem);
+  min-height: var(--textarea-height, clamp(3rem, 2.8rem + 8vw, 6.25rem));
   resize: none;
-  outline: 2px solid transparent;
-  box-shadow: var(--shadow-soft);
   transition:
     border-color var(--motion-duration-lg) var(--motion-ease-emphasized),
     background var(--motion-duration-lg) var(--motion-ease-emphasized),
-    box-shadow var(--motion-duration-lg) var(--motion-ease-emphasized);
+    box-shadow var(--motion-duration-lg) var(--motion-ease-emphasized),
+    min-height var(--motion-duration-lg) var(--motion-ease-emphasized);
+  outline: 2px solid transparent;
+  box-shadow: var(--shadow-soft);
 }
 
 #thoughts:focus {

@@ -52,6 +52,11 @@ export const getViewportMetrics = () => {
     return {
       width: 0,
       height: 0,
+      layoutWidth: 0,
+      layoutHeight: 0,
+      visualWidth: 0,
+      visualHeight: 0,
+      keyboardOffset: 0,
       scale: 1,
       offsetTop: 0,
       offsetBottom: 0,
@@ -67,6 +72,11 @@ export const getViewportMetrics = () => {
     return {
       width: innerWidth,
       height: innerHeight,
+      layoutWidth: innerWidth,
+      layoutHeight: innerHeight,
+      visualWidth: innerWidth,
+      visualHeight: innerHeight,
+      keyboardOffset: 0,
       scale: 1,
       offsetTop: 0,
       offsetBottom: 0,
@@ -76,11 +86,28 @@ export const getViewportMetrics = () => {
 
   const offsetTop = typeof visual.offsetTop === "number" ? visual.offsetTop : 0;
   const offsetBottom = Math.max(innerHeight - (visual.height + offsetTop), 0);
-  const isKeyboardVisible = offsetBottom > 0 || visual.height < innerHeight;
+  const isKeyboardVisible =
+    offsetBottom > 0 || offsetTop > 0 || visual.height < innerHeight * 0.85;
+
+  const layoutWidth = innerWidth;
+  const layoutHeight = innerHeight || visual.height || 0;
+  const visualWidth = visual.width || layoutWidth;
+  const visualHeight = visual.height || layoutHeight;
+
+  const effectiveHeight = isKeyboardVisible
+    ? Math.max(layoutHeight, visualHeight)
+    : visualHeight;
+
+  const keyboardOffset = isKeyboardVisible ? offsetBottom : 0;
 
   return {
-    width: visual.width,
-    height: visual.height,
+    width: visualWidth,
+    height: effectiveHeight,
+    layoutWidth,
+    layoutHeight,
+    visualWidth,
+    visualHeight,
+    keyboardOffset,
     scale: typeof visual.scale === "number" ? visual.scale : 1,
     offsetTop,
     offsetBottom,

@@ -1,9 +1,9 @@
 #thought-layer {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
   overflow: hidden;
-  z-index: 2;
+  z-index: 1000;
 }
 
 .thought {
@@ -11,6 +11,7 @@
   left: var(--left, 0px);
   top: var(--top, 0px);
   width: var(--width, auto);
+  --spawn-offset: 0px;
   --scale: 1;
   --rotation: 0deg;
   color: color-mix(in srgb, var(--color-text-primary) 94%, transparent);
@@ -44,23 +45,26 @@
 .thought-word {
   color: inherit;
   text-shadow: 0 0 22px color-mix(in srgb, var(--color-text-primary) 30%, transparent);
-  animation: wordLift var(--duration, 5400ms) ease-out forwards;
-  animation-delay: var(--delay, 0ms);
+  /* Animation properties set via inline styles - CSS rule is fallback only */
+  animation: wordLift 5400ms ease-out forwards;
+  animation-delay: 0ms;
 }
 
 .thought-space {
   width: var(--space, 0.5em);
   opacity: 0.55;
-  animation: wordLift var(--duration, 5400ms) ease-out forwards;
-  animation-delay: var(--delay, 0ms);
+  /* Animation properties set via inline styles - CSS rule is fallback only */
+  animation: wordLift 5400ms ease-out forwards;
+  animation-delay: 0ms;
 }
 
 .thought-break {
   width: 100%;
   height: 0;
   opacity: 0;
-  animation: wordLift var(--duration, 5400ms) ease-out forwards;
-  animation-delay: var(--delay, 0ms);
+  /* Animation properties set via inline styles - CSS rule is fallback only */
+  animation: wordLift 5400ms ease-out forwards;
+  animation-delay: 0ms;
 }
 
 @keyframes wordLift {

@@ -47,7 +47,7 @@
 
 .modal-header h2 {
   margin: 0;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-interactive-lg);
   letter-spacing: 0.12em;
   text-transform: lowercase;
 }
@@ -56,7 +56,7 @@
   border: none;
   background: transparent;
   color: var(--color-text-muted);
-  font-size: calc(var(--font-size-lg) * 1.2);
+  font-size: calc(var(--font-size-interactive-lg) * 1.2);
   cursor: pointer;
   padding: 0 var(--space-2xs);
 }
@@ -73,7 +73,7 @@
 
 .modal-hint {
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-interactive-sm);
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
 }
@@ -97,7 +97,7 @@
 
 .section-prompt {
   margin: var(--space-2xs) 0 var(--space-sm);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-interactive-sm);
   letter-spacing: 0.05em;
   color: var(--color-text-subtle);
 }
@@ -108,7 +108,7 @@
 }
 
 .modal-field label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-interactive-sm);
   letter-spacing: 0.06em;
   color: var(--color-text-primary);
   text-transform: lowercase;
@@ -121,7 +121,7 @@
 
 .field-hint {
   margin: 0;
-  font-size: calc(var(--font-size-sm) * 0.95);
+  font-size: calc(var(--font-size-interactive-sm) * 0.95);
   letter-spacing: 0.04em;
   color: var(--color-text-subtle);
 }
@@ -132,7 +132,7 @@
 
 .modal-form section h3 {
   margin: 0 0 12px;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-interactive-base);
   letter-spacing: 0.1em;
   text-transform: lowercase;
   color: var(--color-text-primary);
@@ -142,7 +142,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-interactive-sm);
   letter-spacing: 0.06em;
   text-transform: lowercase;
   color: var(--color-text-primary);
@@ -159,7 +159,7 @@
   border: 1px solid var(--color-border-glass);
   background: color-mix(in srgb, var(--color-surface-glass) 90%, transparent);
   color: var(--color-text-primary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-interactive-base);
 }
 
 .modal-form input[type="number"]:focus-visible {
@@ -189,7 +189,7 @@
   border: 1px solid var(--color-border-glass);
   background: color-mix(in srgb, var(--color-surface-glass) 80%, transparent);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-interactive-sm);
   letter-spacing: 0.08em;
   text-transform: lowercase;
   cursor: pointer;
@@ -213,7 +213,7 @@
 .modal-body {
   display: grid;
   gap: var(--space-sm);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-interactive-base);
   line-height: var(--line-height-base);
   letter-spacing: 0.04em;
   color: var(--color-text-primary);

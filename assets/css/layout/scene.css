@@ -1,10 +1,11 @@
 #scene {
-  position: relative;
+  position: fixed;
   width: 100%;
   min-height: var(--layout-min-height);
   padding: var(--space-section-y) var(--space-section-x);
   display: grid;
   place-items: center;
+  transition: transform 0.2s ease-out, height 0.2s ease-out;
 }
 
 .sky {
@@ -24,7 +25,7 @@
 }
 
 .stars {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
   background-color: #020311;
@@ -36,7 +37,7 @@
 
 .thoughts-shell {
   position: fixed;
-  inset: auto 0 0 0;
+  inset: auto 0 var(--viewport-offset-bottom, 0px) 0;
   padding: clamp(0.9rem, 0.6rem + 1vw, 2rem) clamp(1.4rem, 1.1rem + 3vw, 3.8rem)
     clamp(1.4rem, 1rem + 2.5vw, 2.9rem);
   z-index: 4;

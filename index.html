@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
+    />
     <meta
       name="description"
       content="A modern Thoughts Room remake where you release your thoughts into a calming, starry sky with music and customizable animations."
@@ -23,35 +26,47 @@
     <link rel="preload" as="image" id="background-preload" />
   </head>
   <body>
-    <div class="nav-buttons" role="group" aria-label="page controls">
+    <nav class="nav-buttons" aria-label="page controls">
       <button
         type="button"
-        id="about-toggle"
-        class="glass-button"
-        aria-haspopup="dialog"
+        class="glass-button nav-toggle"
+        id="nav-toggle"
         aria-expanded="false"
+        aria-controls="nav-actions"
+        aria-label="Toggle navigation"
       >
-        about
+        <span class="nav-toggle-icon" aria-hidden="true"></span>
       </button>
-      <button
-        type="button"
-        id="music-toggle"
-        class="glass-button"
-        aria-haspopup="dialog"
-        aria-expanded="false"
-      >
-        music
-      </button>
-      <button
-        type="button"
-        id="animations-toggle"
-        class="glass-button"
-        aria-haspopup="dialog"
-        aria-expanded="false"
-      >
-        animations
-      </button>
-    </div>
+      <div class="nav-actions" id="nav-actions" role="group">
+        <button
+          type="button"
+          id="about-toggle"
+          class="glass-button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+        >
+          about
+        </button>
+        <button
+          type="button"
+          id="music-toggle"
+          class="glass-button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+        >
+          music
+        </button>
+        <button
+          type="button"
+          id="animations-toggle"
+          class="glass-button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+        >
+          animations
+        </button>
+      </div>
+    </nav>
 
     <div id="scene">
       <div class="sky" aria-hidden="true">
@@ -218,30 +233,30 @@
               {
                 "path": "delay.max",
                 "label": "max delay",
-                "prompt": "Controls stagger before individual words begin drifting.",
+                "prompt": "Controls stagger before individual words begin drifting. Set to 0 to remove the stutter and start immediately.",
                 "type": "range",
-                "default": 0.36,
+                "default": 0,
                 "min": 0,
                 "max": 1,
                 "absoluteMin": 0,
                 "absoluteMax": 1,
                 "step": 0.01,
                 "unit": "seconds",
-                "public": false
+                "public": true
               },
               {
                 "path": "delay.lineStep",
                 "label": "line delay",
-                "prompt": "Extra delay between lines when multiple lines are released.",
+                "prompt": "Extra delay between lines when multiple lines are released. Set to 0 for immediate start.",
                 "type": "range",
-                "default": 0.45,
+                "default": 0,
                 "min": 0,
                 "max": 1,
                 "absoluteMin": 0,
                 "absoluteMax": 1,
                 "step": 0.01,
                 "unit": "seconds",
-                "public": false
+                "public": true
               }
             ]
           },
@@ -319,6 +334,20 @@
                 "step": 0.01,
                 "unit": "ratio",
                 "public": false
+              },
+              {
+                "path": "travel.spawnOffset",
+                "label": "spawn position offset (px)",
+                "prompt": "Vertical offset from the textarea where thoughts appear. Negative values move thoughts up, positive values move them down.",
+                "type": "range",
+                "default": 0,
+                "min": -200,
+                "max": 200,
+                "absoluteMin": -500,
+                "absoluteMax": 500,
+                "step": 1,
+                "unit": "pixels",
+                "public": true
               }
             ]
           },

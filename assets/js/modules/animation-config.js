@@ -12,8 +12,8 @@ const DEFAULT_ANIMATION = {
     random: 2.6,
   },
   delay: {
-    max: 0.36,
-    lineStep: 0.45,
+    max: 0,
+    lineStep: 0,
   },
   travel: {
     vertical: {
@@ -25,6 +25,7 @@ const DEFAULT_ANIMATION = {
       min: 160,
     },
     fadeBufferRatio: 0.18,
+    spawnOffset: 0,
   },
   velocity: {
     average: 0.6,
@@ -34,23 +35,17 @@ const DEFAULT_ANIMATION = {
   },
   filter: {
     blur: {
-      startMin: 0.2,
-      startMax: 0.8,
-      endMin: 1.2,
-      endMax: 2.6,
+      start: 0.5,
+      end: 2.0,
     },
     hue: {
-      startMin: -6,
-      startMax: 6,
-      endMin: -18,
-      endMax: 18,
+      start: 0,
+      end: 0,
     },
   },
   opacity: {
-    startMin: 0.75,
-    startMax: 1,
-    endMin: 0,
-    endMax: 0,
+    start: 1,
+    end: 0,
   },
 };
 
@@ -101,14 +96,16 @@ const resolveDynamicBound = (bound) => {
     const metrics = getViewportMetrics();
     const innerWidth = typeof window !== "undefined" ? window.innerWidth || 0 : 0;
     const innerHeight = typeof window !== "undefined" ? window.innerHeight || 0 : 0;
+    const layoutWidth = metrics.layoutWidth || innerWidth;
+    const layoutHeight = metrics.layoutHeight || innerHeight;
 
     let value;
     switch (bound.key) {
       case "viewportHeight":
-        value = Math.max((metrics.height || innerHeight || fallback) * scale, 0);
+        value = Math.max((metrics.height || layoutHeight || fallback) * scale, 0);
         break;
       case "viewportWidth":
-        value = Math.max((metrics.width || innerWidth || fallback) * scale, 0);
+        value = Math.max((metrics.width || layoutWidth || fallback) * scale, 0);
         break;
       default:
         return undefined;

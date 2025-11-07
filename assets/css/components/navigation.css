@@ -1,12 +1,85 @@
 .nav-buttons {
   position: fixed;
-  top: var(--space-nav-offset-y);
+  top: calc(var(--space-nav-offset-y) + var(--viewport-offset-top, 0px));
   right: var(--space-nav-offset-x);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  z-index: 5;
+}
+
+.nav-actions {
   display: flex;
   gap: var(--space-xs);
   flex-wrap: wrap;
   justify-content: flex-end;
-  z-index: 5;
+}
+
+.nav-buttons.is-open .nav-actions {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nav-toggle {
+  display: none;
+  position: relative;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  justify-content: center;
+  align-items: center;
+}
+
+.nav-toggle[aria-expanded="true"] {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.nav-toggle-icon,
+.nav-toggle-icon::before,
+.nav-toggle-icon::after {
+  position: absolute;
+  left: 50%;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  transition:
+    transform var(--motion-duration-md) var(--motion-ease-emphasized),
+    opacity var(--motion-duration-md) var(--motion-ease-emphasized);
+}
+
+.nav-toggle-icon {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.nav-toggle-icon::before,
+.nav-toggle-icon::after {
+  content: "";
+}
+
+.nav-toggle-icon::before {
+  top: -6px;
+}
+
+.nav-toggle-icon::after {
+  top: 6px;
+}
+
+.nav-buttons.is-open .nav-toggle-icon {
+  background: transparent;
+}
+
+.nav-buttons.is-open .nav-toggle-icon::before {
+  transform: translate(-50%, 0) rotate(45deg);
+  top: 0;
+}
+
+.nav-buttons.is-open .nav-toggle-icon::after {
+  transform: translate(-50%, 0) rotate(-45deg);
+  top: 0;
 }
 
 .glass-button {
@@ -22,7 +95,7 @@
     linear-gradient(235deg, rgba(48, 75, 255, 0.18), rgba(0, 0, 0, 0.15));
   backdrop-filter: blur(var(--blur-glass));
   color: color-mix(in srgb, #ffffff 88%, transparent);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-interactive-sm);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
