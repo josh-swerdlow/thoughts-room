@@ -15,6 +15,9 @@ export const initAudioControls = ({
 
   let storedVolumeBeforeMute = 0.3;
   let audioFadedIn = false;
+  let audioLoaded = false;
+  let audioPreloaded = false;
+  let userHasRequestedPlay = false;
 
   const musicTrackOptions = trackSelect
     ? Array.from(trackSelect.options).map((option) => ({
@@ -30,6 +33,7 @@ export const initAudioControls = ({
     }
   }
 
+  // Set source but don't load yet - wait for page to be ready
   if (audioEl && musicTrackOptions.length > 0 && !audioEl.getAttribute("src")) {
     audioEl.src = musicTrackOptions[0].absolute;
   }
@@ -136,7 +140,9 @@ export const initAudioControls = ({
   if (playButton) {
     playButton.addEventListener("click", () => {
       if (audioEl.paused) {
+        userHasRequestedPlay = true;
         audioEl.play().catch(() => {});
+        fadeInAudio();
       } else {
         audioEl.pause();
       }
@@ -165,6 +171,12 @@ export const initAudioControls = ({
         }
         audioEl.volume = clampedValue;
         storedVolumeBeforeMute = clampedValue;
+        // Only auto-play if user is adjusting volume (explicit interaction)
+        if (audioEl.paused && !userHasRequestedPlay) {
+          userHasRequestedPlay = true;
+          audioEl.play().catch(() => {});
+          fadeInAudio();
+        }
       } else {
         audioEl.muted = true;
         audioEl.volume = 0;
@@ -182,36 +194,45 @@ export const initAudioControls = ({
     musicForm.addEventListener("submit", (event) => event.preventDefault());
   }
 
-  window.addEventListener("load", () => {
-    const startFade = () => {
-      fadeInAudio();
-      audioEl.removeEventListener("canplay", startFade);
-    };
+  // Preload audio after page is ready (in background)
+  const preloadAudio = () => {
+    if (audioPreloaded || !audioEl) {
+      return;
+    }
 
-    audioEl.addEventListener("canplay", startFade, { once: true });
+    audioPreloaded = true;
 
-    audioEl
-      .play()
-      .then(() => {
-        fadeInAudio();
-      })
-      .catch(() => {
-        document.addEventListener(
-          "click",
-          () => {
-            audioEl.play().then(fadeInAudio).catch(() => {});
-          },
-          { once: true },
-        );
-      });
-  });
+    // Load audio in background so it's ready when user clicks
+    if (audioEl.readyState === 0) {
+      audioEl.load();
+    }
+
+    // Pre-buffer the audio by loading metadata
+    audioEl.addEventListener('canplaythrough', () => {
+      audioLoaded = true;
+    }, { once: true });
+  };
+
+  // Preload audio on first user interaction (but don't auto-play)
+  const preloadOnInteraction = () => {
+    // If not preloaded yet, load now
+    if (!audioPreloaded) {
+      preloadAudio();
+    }
+  };
+
+  // Add interaction listeners for preloading (but not auto-playing)
+  document.addEventListener('click', preloadOnInteraction, { once: true });
+  document.addEventListener('touchstart', preloadOnInteraction, { once: true });
 
   syncMusicControls();
 
+  // Return preload function so it can be called when page is ready
   return {
     fadeInAudio,
     syncMusicControls,
     setMusicTrackByValue,
+    preloadAudio, // Export this so main.js can call it
   };
 };
 

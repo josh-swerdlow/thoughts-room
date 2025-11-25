@@ -16,16 +16,134 @@
       type="image/svg+xml"
       href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9Ijk2Ij7wn6SrPC90ZXh0Pjwvc3ZnPg=="
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#020311" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Thoughts Room" />
+
+    <!-- Pre-place background image based on query param -->
+    <script>
+      // Use immediate execution but don't block
+      (function() {
+        'use strict';
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const bgParam = urlParams.get('bg');
+          const backgrounds = [
+            { desktop: "/images/desktop/hubble-m44-optimized.webp", mobile: "/images/mobile/hubble-m44-mobile.webp" },
+            { desktop: "/images/desktop/hubble-m48-optimized.webp", mobile: "/images/mobile/hubble-m48-mobile.webp" },
+            { desktop: "/images/desktop/wild-duck-cluster-optimized.webp", mobile: "/images/mobile/wild-duck-cluster-mobile.webp" }
+          ];
+          let index = 0;
+          if (bgParam !== null) {
+            const parsed = parseInt(bgParam, 10);
+            if (!isNaN(parsed) && parsed >= 0 && parsed < backgrounds.length) {
+              index = parsed;
+            } else {
+              index = Math.floor(Math.random() * backgrounds.length);
+            }
+          } else {
+            index = Math.floor(Math.random() * backgrounds.length);
+          }
+          const isMobile = window.innerWidth <= 768;
+          const bgUrl = isMobile ? backgrounds[index].mobile : backgrounds[index].desktop;
+          const preloadLink = document.getElementById('background-preload');
+          if (preloadLink) {
+            preloadLink.href = bgUrl;
+          }
+          document.documentElement.style.setProperty('--initial-bg-url', `url("${bgUrl}")`);
+        } catch (e) {
+          // Silently fail if there's an error
+        }
+      })();
+    </script>
+
+    <!-- Inline critical CSS for immediate render -->
+    <style>
+      /* Set initial viewport variables to prevent CLS */
+      :root {
+        --viewport-offset-bottom: 0px;
+        --viewport-offset-top: 0px;
+        --textarea-height: clamp(3rem, 2.8rem + 8vw, 6.25rem);
+        --layout-min-height: min(100vh, 100dvh);
+      }
+
+      /* Critical: Scene and background placeholder */
+      #scene {
+        position: fixed;
+        width: 100%;
+        height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+      }
+
+      .stars {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        min-height: 100dvh;
+        background-color: #020311;
+        background-image:
+          radial-gradient(circle at 30% 40%, rgba(118, 142, 255, 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 70% 60%, rgba(118, 142, 255, 0.1) 0%, transparent 50%),
+          var(--initial-bg-url, none);
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+
+      .stars::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-color: #020311;
+        opacity: 1;
+        transition: opacity 0.5s ease-out;
+        pointer-events: none;
+      }
+
+      .stars.loaded::before {
+        opacity: 0;
+      }
+
+      .thoughts-shell {
+        position: fixed;
+        bottom: var(--viewport-offset-bottom, 0px);
+        left: 0;
+        right: 0;
+        min-height: clamp(3rem, 2.8rem + 8vw, 6.25rem);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #thoughts {
+        width: 100%;
+        max-width: min(60rem, 92vw);
+        min-height: var(--textarea-height, clamp(3rem, 2.8rem + 8vw, 6.25rem));
+      }
+    </style>
+
+    <!-- Fonts are bundled by esbuild and loaded via CSS @font-face -->
+    <!-- Preloads removed because bundled font paths have hashed filenames that don't match source paths -->
+
+    <!-- Critical CSS and JS preloads -->
+    <link rel="preload" href="dist/main.css" as="style">
+    <link rel="preload" href="dist/main.js" as="script" crossorigin="anonymous">
+
     <link rel="stylesheet" href="dist/main.css" />
     <link rel="preload" as="image" id="background-preload" />
   </head>
-  <body>
+  <body class="loading">
+    <!-- Spotify embed on left side, inline with nav -->
+    <div id="spotify-embed-container" class="spotify-embed-container">
+      <div id="spotify-iframe-wrapper"></div>
+    </div>
+
     <nav class="nav-buttons" aria-label="page controls">
       <button
         type="button"
@@ -136,28 +254,62 @@
           </button>
         </header>
         <form id="music-form" class="music-form">
-          <label class="slider-label">
-            <div class="slider-head">
-              <span>volume</span>
-              <span class="slider-value" data-volume-display></span>
-            </div>
-            <input
-              type="range"
-              id="music-volume"
-              min="0"
-              max="1"
-              step="0.01"
-              value="0.3"
-            />
-          </label>
-          <div class="music-controls">
-            <button type="button" id="music-toggle-mute" class="glass-button small">mute</button>
-            <button type="button" id="music-toggle-play" class="glass-button small">pause</button>
-          </div>
+          <button
+            type="button"
+            id="music-play-pause"
+            class="music-play-pause glass-button"
+            aria-label="Play or pause music"
+          >
+            <span class="music-play-icon">▶</span>
+            <span class="music-pause-icon" style="display: none;">⏸</span>
+          </button>
           <label class="music-select">
             audio track
             <select id="music-track">
-              <option value="audio/deference-for-darkness-cut.m4a">Deference for Darkness</option>
+              <option
+                value="4qHBvrzFbpUWeFxhdbpar8"
+                data-title="One day in August"
+                data-artist="Marc Teichert"
+                data-theme="0">
+                One day in August by Marc Teichert
+              </option>
+              <option
+                value="6kRO6dFs2oQPhB7uMxx42B"
+                data-title="Daydream"
+                data-artist="Marc Teichert"
+                data-theme="0">
+                Daydream by Marc Teichert
+              </option>
+              <option
+                value="7yYezAet9r4sUCjVQUaGMZ"
+                data-title="Chickentown"
+                data-artist="Marc Teichert"
+                data-theme="0">
+                Chickentown by Marc Teichert
+              </option>
+            </select>
+          </label>
+          <label class="music-volume-setting">
+            volume
+            <div class="music-volume-control">
+              <input
+                type="range"
+                id="music-volume"
+                class="music-volume-slider"
+                min="0"
+                max="100"
+                value="50"
+                step="1"
+                aria-label="Volume"
+              />
+              <span class="music-volume-display" data-volume-display>50%</span>
+            </div>
+          </label>
+          <label class="music-select">
+            display
+            <select id="music-display">
+              <option value="shown">shown</option>
+              <option value="hidden">hidden</option>
             </select>
           </label>
         </form>
@@ -192,7 +344,7 @@
       </div>
     </div>
 
-    <audio id="bg-audio" autoplay loop preload="metadata" src="audio/deference-for-darkness-cut.m4a"></audio>
+    <!-- Old audio element - replaced with Bandcamp embed -->
 
     <script id="animation-settings-data" type="application/json">
       {
@@ -564,6 +716,8 @@
         ]
       }
     </script>
-    <script type="module" src="dist/main.js"></script>
+    <!-- Spotify iFrame API for programmatic control -->
+    <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+    <script type="module" src="dist/main.js" defer></script>
   </body>
 </html>

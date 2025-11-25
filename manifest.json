@@ -1,0 +1,19 @@
+{
+  "name": "Thoughts Room",
+  "short_name": "Thoughts Room",
+  "description": "A modern Thoughts Room remake where you release your thoughts into a calming, starry sky with music and customizable animations.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020311",
+  "theme_color": "#020311",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9Ijk2Ij7wn6SrPC90ZXh0Pjwvc3ZnPg==",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

@@ -19,6 +19,16 @@
     gap: var(--space-2xs);
     top: calc(clamp(0.6rem, 0.4rem + 1vw, 1rem) + var(--viewport-offset-top, 0px));
     right: clamp(0.8rem, 0.5rem + 1vw, 1.4rem);
+    left: auto;
+  }
+
+  .spotify-embed-container {
+    top: calc(clamp(0.6rem, 0.4rem + 1vw, 1rem) + var(--viewport-offset-top, 0px));
+    left: clamp(0.8rem, 0.5rem + 1vw, 1.4rem);
+    width: 305px;
+    max-width: 305px;
+    height: 80px;
+    margin-bottom: var(--space-2xs);
   }
 
   .nav-toggle {

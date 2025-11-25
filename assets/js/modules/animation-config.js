@@ -476,7 +476,7 @@ const initializeSettings = async () => {
 
   try {
     const response = await fetch(new URL("animation-settings.json", window.location.href).href, {
-      cache: "no-store",
+      cache: "default",
     });
     if (!response.ok) {
       throw new Error(`Failed to load settings: ${response.status}`);

@@ -1,3 +1,10 @@
+/service-worker.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+/manifest.json
+  Cache-Control: public, max-age=3600
+
 /images/*
   Cache-Control: public, max-age=31536000, immutable
 
@@ -13,6 +20,6 @@
 /*.webp
   Cache-Control: public, max-age=31536000, immutable
 
-/*.m4a
+/*.webm
   Cache-Control: public, max-age=31536000, immutable
 

@@ -865,10 +865,6 @@ if (typeof window !== "undefined") {
     localStorage.setItem("thoughts-debug", "false");
     window.location.reload();
   };
-
-  if (DEBUG_ENABLED) {
-    console.log("Thoughts Debug: Available functions:", Object.keys(window.__thoughtsDebug));
-  }
 }
 
 

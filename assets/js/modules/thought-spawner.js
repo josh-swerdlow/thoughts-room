@@ -19,44 +19,17 @@ export const initThoughtSpawner = ({
   let activeModalChecker = () => false;
 
   const spawnThought = (text) => {
+    // Don't spawn if page is still loading
+    if (document.body.classList.contains('loading')) {
+      return;
+    }
+
     if (!scene || !thoughtInput || !thoughtLayer) {
       return;
     }
 
     const boxRect = thoughtInput.getBoundingClientRect();
     const computed = window.getComputedStyle(thoughtInput);
-
-    // DEBUG: Log textarea position and related info
-    console.log('=== TEXTAREA DEBUG ===');
-    console.log('boxRect:', {
-      top: boxRect.top,
-      left: boxRect.left,
-      width: boxRect.width,
-      height: boxRect.height,
-      bottom: boxRect.bottom,
-      right: boxRect.right
-    });
-    console.log('computed styles:', {
-      borderTop: computed.borderTopWidth,
-      borderLeft: computed.borderLeftWidth,
-      paddingTop: computed.paddingTop,
-      paddingLeft: computed.paddingLeft,
-      position: computed.position,
-      top: computed.top,
-      left: computed.left
-    });
-    console.log('thoughtInput.getBoundingClientRect():', thoughtInput.getBoundingClientRect());
-    console.log('thoughtLayer.getBoundingClientRect():', thoughtLayer.getBoundingClientRect());
-    console.log('scene.getBoundingClientRect():', scene?.getBoundingClientRect());
-    console.log('window.visualViewport:', window.visualViewport ? {
-      offsetTop: window.visualViewport.offsetTop,
-      offsetLeft: window.visualViewport.offsetLeft,
-      height: window.visualViewport.height,
-      width: window.visualViewport.width,
-      scale: window.visualViewport.scale
-    } : 'not available');
-    console.log('window.scrollY:', window.scrollY);
-    console.log('window.scrollX:', window.scrollX);
 
     const thought = document.createElement("div");
     thought.className = "thought";
@@ -83,11 +56,6 @@ export const initThoughtSpawner = ({
     // Position thought element at textStartTop - this is where the textarea's text actually begins
     let originTop = boxRect.top + borderTop + paddingTop;
     const originTopBeforeAdjust = originTop;
-
-    console.log('=== POSITION CALCULATIONS ===');
-    console.log('borderTop:', borderTop, 'paddingTop:', paddingTop);
-    console.log('originTop (before adjustments):', originTop);
-    console.log('originLeft:', originLeft);
 
     // Apply user-configurable spawn offset
     const spawnOffset = animationConfig.travel?.spawnOffset || 0;
@@ -128,13 +96,6 @@ export const initThoughtSpawner = ({
     thought.style.top = `${adjustedTop}px`;
     thought.style.width = `${boxRect.width}px`;
 
-    console.log('=== FINAL POSITION ===');
-    console.log('finalOriginTop (viewport):', finalOriginTop);
-    console.log('thoughtLayerTop (viewport):', thoughtLayerTop);
-    console.log('relativeTop (relative to thoughtLayer):', relativeTop);
-    console.log('cssOffsetValue:', cssOffsetValue);
-    console.log('adjustedTop (thought.style.top):', adjustedTop);
-    console.log('thought.style.left:', `${originLeft}px`);
     // Set padding with top padding removed since we're positioning at textStartTop
     // This makes the thought spawn directly on the text
     thought.style.padding = `0 ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`;
@@ -422,22 +383,6 @@ export const initThoughtSpawner = ({
 
     // After appending, check if thought extends below viewport and adjust if needed
     const thoughtRect = thought.getBoundingClientRect();
-
-    console.log('=== AFTER APPEND TO DOM ===');
-    console.log('thought.style.top:', thought.style.top);
-    console.log('thought.style.left:', thought.style.left);
-    console.log('thought.getBoundingClientRect():', {
-      top: thoughtRect.top,
-      left: thoughtRect.left,
-      width: thoughtRect.width,
-      height: thoughtRect.height,
-      bottom: thoughtRect.bottom,
-      right: thoughtRect.right
-    });
-    console.log('Difference from expected:', {
-      topDiff: thoughtRect.top - adjustedTop,
-      leftDiff: thoughtRect.left - originLeft
-    });
 
     const viewportHeightAfterAppend = viewportMetrics.visualHeight || viewportMetrics.height || window.innerHeight || 0;
     const thoughtBottomInViewport = thoughtRect.bottom;
@@ -959,6 +904,12 @@ export const initThoughtSpawner = ({
   });
 
   thoughtInput.addEventListener("keydown", (event) => {
+    // Don't process if still loading
+    if (document.body.classList.contains('loading')) {
+      event.preventDefault();
+      return;
+    }
+
     if (promptActive) {
       releasePrompt();
       if (event.key === "Enter" && !event.shiftKey) {

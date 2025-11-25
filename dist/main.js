@@ -1,3 +1,602 @@
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
+// assets/js/modules/utils.js
+var clamp, ensureOrder, formatSeconds, applyConfig, getViewportMetrics;
+var init_utils = __esm({
+  "assets/js/modules/utils.js"() {
+    clamp = (value, min, max) => {
+      if (Number.isNaN(value)) {
+        return min;
+      }
+      if (typeof max === "number") {
+        return Math.min(Math.max(value, min), max);
+      }
+      return Math.max(value, min);
+    };
+    ensureOrder = (object, minKey, maxKey) => {
+      if (object[minKey] > object[maxKey]) {
+        const temp = object[minKey];
+        object[minKey] = object[maxKey];
+        object[maxKey] = temp;
+      }
+    };
+    formatSeconds = (seconds) => {
+      if (!Number.isFinite(seconds)) {
+        return "0";
+      }
+      const decimals = seconds >= 5 ? 1 : 2;
+      const trimmed = Number(seconds.toFixed(decimals));
+      return trimmed.toString();
+    };
+    applyConfig = (target, source) => {
+      Object.keys(source).forEach((key) => {
+        if (typeof source[key] === "object" && source[key] !== null) {
+          if (typeof target[key] !== "object" || target[key] === null) {
+            target[key] = Array.isArray(source[key]) ? [] : {};
+          }
+          applyConfig(target[key], source[key]);
+        } else {
+          target[key] = source[key];
+        }
+      });
+    };
+    getViewportMetrics = () => {
+      if (typeof window === "undefined") {
+        return {
+          width: 0,
+          height: 0,
+          layoutWidth: 0,
+          layoutHeight: 0,
+          visualWidth: 0,
+          visualHeight: 0,
+          keyboardOffset: 0,
+          scale: 1,
+          offsetTop: 0,
+          offsetBottom: 0,
+          isKeyboardVisible: false
+        };
+      }
+      const innerWidth = window.innerWidth || 0;
+      const innerHeight = window.innerHeight || 0;
+      const visual = window.visualViewport;
+      if (!visual) {
+        return {
+          width: innerWidth,
+          height: innerHeight,
+          layoutWidth: innerWidth,
+          layoutHeight: innerHeight,
+          visualWidth: innerWidth,
+          visualHeight: innerHeight,
+          keyboardOffset: 0,
+          scale: 1,
+          offsetTop: 0,
+          offsetBottom: 0,
+          isKeyboardVisible: false
+        };
+      }
+      const offsetTop = typeof visual.offsetTop === "number" ? visual.offsetTop : 0;
+      const offsetBottom = Math.max(innerHeight - (visual.height + offsetTop), 0);
+      const isKeyboardVisible = offsetBottom > 0 || offsetTop > 0 || visual.height < innerHeight * 0.85;
+      const layoutWidth = innerWidth;
+      const layoutHeight = innerHeight || visual.height || 0;
+      const visualWidth = visual.width || layoutWidth;
+      const visualHeight = visual.height || layoutHeight;
+      const effectiveHeight = isKeyboardVisible ? Math.max(layoutHeight, visualHeight) : visualHeight;
+      const keyboardOffset = isKeyboardVisible ? offsetBottom : 0;
+      return {
+        width: visualWidth,
+        height: effectiveHeight,
+        layoutWidth,
+        layoutHeight,
+        visualWidth,
+        visualHeight,
+        keyboardOffset,
+        scale: typeof visual.scale === "number" ? visual.scale : 1,
+        offsetTop,
+        offsetBottom,
+        isKeyboardVisible
+      };
+    };
+  }
+});
+
+// assets/js/modules/spotify-embed.js
+var spotify_embed_exports = {};
+__export(spotify_embed_exports, {
+  initSpotifyControls: () => initSpotifyControls
+});
+var ContainerState, PREAPPROVED_TRACKS, SPOTIFY_IFRAME_SRC, THEME_VALUE, EMBED_HEIGHT, spotifyApiPromise, ensureSpotifyScript, waitForSpotifyApi, toSpotifyUri, mergeTrackSources, createController, configureIframeAttributes, STORAGE_KEY_DISPLAY, AUTO_HIDE_DELAY_MS, initSpotifyControls;
+var init_spotify_embed = __esm({
+  "assets/js/modules/spotify-embed.js"() {
+    init_utils();
+    ContainerState = {
+      HIDDEN: "hidden",
+      SHOWN: "shown",
+      TEMP_SHOW: "tempShow"
+    };
+    PREAPPROVED_TRACKS = [
+      {
+        id: "4qHBvrzFbpUWeFxhdbpar8",
+        uri: "spotify:track:4qHBvrzFbpUWeFxhdbpar8",
+        title: "One day in August",
+        artist: "Marc Teichert"
+      },
+      {
+        id: "6kRO6dFs2oQPhB7uMxx42B",
+        uri: "spotify:track:6kRO6dFs2oQPhB7uMxx42B",
+        title: "Daydream",
+        artist: "Marc Teichert"
+      },
+      {
+        id: "7yYezAet9r4sUCjVQUaGMZ",
+        uri: "spotify:track:7yYezAet9r4sUCjVQUaGMZ",
+        title: "Chickentown",
+        artist: "Marc Teichert"
+      }
+    ];
+    SPOTIFY_IFRAME_SRC = "https://open.spotify.com/embed/iframe-api/v1";
+    THEME_VALUE = "dark";
+    EMBED_HEIGHT = 80;
+    spotifyApiPromise = null;
+    ensureSpotifyScript = () => {
+      var _a;
+      if (document.querySelector(`script[src="${SPOTIFY_IFRAME_SRC}"]`)) return;
+      const script = document.createElement("script");
+      script.src = SPOTIFY_IFRAME_SRC;
+      script.async = true;
+      (_a = document.body) == null ? void 0 : _a.appendChild(script);
+    };
+    waitForSpotifyApi = () => {
+      if (window.SpotifyIframeApi) {
+        return Promise.resolve(window.SpotifyIframeApi);
+      }
+      if (!spotifyApiPromise) {
+        spotifyApiPromise = new Promise((resolve, reject) => {
+          const timeout = window.setTimeout(
+            () => reject(new Error("Spotify IFrame API never became ready")),
+            15e3
+          );
+          const prevReady = window.onSpotifyIframeApiReady;
+          window.onSpotifyIframeApiReady = (api) => {
+            prevReady == null ? void 0 : prevReady(api);
+            window.clearTimeout(timeout);
+            resolve(api);
+          };
+          ensureSpotifyScript();
+        });
+      }
+      return spotifyApiPromise;
+    };
+    toSpotifyUri = (value) => {
+      if (!value) return null;
+      if (value.startsWith("spotify:")) return value;
+      if (value.startsWith("http")) {
+        try {
+          const url = new URL(value);
+          const id = url.pathname.split("/").filter(Boolean).pop();
+          return id ? `spotify:track:${id}` : null;
+        } catch {
+          return null;
+        }
+      }
+      return `spotify:track:${value}`;
+    };
+    mergeTrackSources = (trackSelect) => {
+      const merged = [...PREAPPROVED_TRACKS];
+      if (!trackSelect) return merged;
+      Array.from(trackSelect.options).forEach((option) => {
+        var _a;
+        const id = option.value;
+        const uri = toSpotifyUri(option.dataset.uri || id);
+        if (!uri) return;
+        const incoming = {
+          id,
+          uri,
+          title: option.dataset.title || ((_a = option.textContent) == null ? void 0 : _a.trim()) || id,
+          artist: option.dataset.artist || "Unknown artist"
+        };
+        const existingIdx = merged.findIndex((track) => track.id === id);
+        if (existingIdx >= 0) {
+          merged[existingIdx] = { ...merged[existingIdx], ...incoming };
+        } else {
+          merged.push(incoming);
+        }
+      });
+      return merged;
+    };
+    createController = (api, mount, track) => new Promise((resolve, reject) => {
+      api.createController(
+        mount,
+        {
+          uri: track.uri,
+          theme: THEME_VALUE,
+          width: "100%",
+          height: EMBED_HEIGHT
+        },
+        (controller) => {
+          if (!controller) {
+            reject(new Error("Spotify controller unavailable"));
+          } else {
+            resolve(controller);
+          }
+        }
+      );
+    });
+    configureIframeAttributes = (iframe) => {
+      if (!iframe) return;
+      iframe.style.borderRadius = "13px";
+    };
+    STORAGE_KEY_DISPLAY = "spotify-display";
+    AUTO_HIDE_DELAY_MS = 1e4;
+    initSpotifyControls = async ({
+      wrapper = document.getElementById("spotify-iframe-wrapper") || document.getElementById("spotify-embed-container"),
+      container = document.getElementById("spotify-embed-container"),
+      trackSelect = document.getElementById("music-track"),
+      displaySelect = document.getElementById("music-display"),
+      volumeSlider = document.getElementById("music-volume"),
+      volumeDisplay = document.querySelector("[data-volume-display]"),
+      playPauseBtn = document.getElementById("music-play-pause"),
+      defaultTrackId,
+      onReady
+    } = {}) => {
+      if (!wrapper) {
+        console.warn("Spotify embed wrapper not found");
+        return null;
+      }
+      const tracks = mergeTrackSources(trackSelect).filter((track) => Boolean(track.uri));
+      if (!tracks.length) {
+        console.warn("No pre-approved Spotify tracks available");
+        return null;
+      }
+      let containerState = ContainerState.SHOWN;
+      let displayMode = "shown";
+      let autoHideTimeout = null;
+      let tempShowTimeout = null;
+      const loadDisplayPreference = () => {
+        displayMode = "shown";
+        if (displaySelect) {
+          displaySelect.value = displayMode;
+        }
+        applyDisplayMode();
+      };
+      const saveDisplayPreference = (value) => {
+        displayMode = value;
+        localStorage.setItem(STORAGE_KEY_DISPLAY, value);
+        applyDisplayMode();
+      };
+      const applyDisplayMode = () => {
+        cancelAutoHide();
+        if (displayMode === "hidden") {
+          setContainerState(ContainerState.HIDDEN);
+        } else {
+          setContainerState(ContainerState.SHOWN);
+        }
+      };
+      const setContainerState = (newState) => {
+        if (tempShowTimeout) {
+          clearTimeout(tempShowTimeout);
+          tempShowTimeout = null;
+        }
+        containerState = newState;
+        const isHidden = newState === ContainerState.HIDDEN;
+        const isTempShow = newState === ContainerState.TEMP_SHOW;
+        if (container) {
+          container.classList.toggle("is-hidden", isHidden);
+          container.classList.toggle("is-temp-show", isTempShow);
+        }
+        if (displaySelect && !isTempShow) {
+          if (isHidden) {
+            displaySelect.value = "hidden";
+          } else {
+            displaySelect.value = "shown";
+          }
+        }
+        const iframe = wrapper.querySelector("iframe");
+        if (iframe) {
+          iframe.style.transition = "width 1s cubic-bezier(0.4, 0, 0.2, 1)";
+          iframe.offsetWidth;
+          iframe.style.width = isHidden ? "0%" : "100%";
+        }
+        if (isTempShow) {
+          const TEMP_SHOW_DURATION_MS = 1e4;
+          tempShowTimeout = setTimeout(() => {
+            setContainerState(ContainerState.HIDDEN);
+          }, TEMP_SHOW_DURATION_MS);
+        }
+      };
+      const scheduleAutoHide = () => {
+        if (autoHideTimeout) {
+          clearTimeout(autoHideTimeout);
+        }
+        if (containerState === ContainerState.SHOWN) {
+          autoHideTimeout = setTimeout(() => {
+            setContainerState(ContainerState.HIDDEN);
+          }, AUTO_HIDE_DELAY_MS);
+        }
+      };
+      const cancelAutoHide = () => {
+        if (autoHideTimeout) {
+          clearTimeout(autoHideTimeout);
+          autoHideTimeout = null;
+        }
+      };
+      const showTemp = () => {
+        if (containerState === ContainerState.HIDDEN) {
+          cancelAutoHide();
+          setContainerState(ContainerState.TEMP_SHOW);
+        }
+      };
+      if (displaySelect) {
+        displaySelect.addEventListener("change", (event) => {
+          const value = event.target.value;
+          saveDisplayPreference(value);
+        });
+      }
+      let previousStateBeforeHover = null;
+      const showOnInteraction = () => {
+        if (containerState === ContainerState.HIDDEN) {
+          previousStateBeforeHover = ContainerState.HIDDEN;
+          const iframe = wrapper.querySelector("iframe");
+          if (iframe) {
+            iframe.style.transition = "width 1s cubic-bezier(0.4, 0, 0.2, 1)";
+            iframe.offsetWidth;
+            iframe.style.width = "100%";
+          }
+          if (container) {
+            container.classList.remove("is-hidden");
+          }
+        }
+      };
+      const hideOnInteraction = () => {
+        if (previousStateBeforeHover === ContainerState.HIDDEN && containerState === ContainerState.HIDDEN) {
+          const iframe = wrapper.querySelector("iframe");
+          if (iframe) {
+            iframe.style.transition = "width 1s cubic-bezier(0.4, 0, 0.2, 1)";
+            iframe.offsetWidth;
+            iframe.style.width = "0%";
+          }
+          if (container) {
+            container.classList.add("is-hidden");
+          }
+          previousStateBeforeHover = null;
+        }
+      };
+      if (container) {
+        container.addEventListener("mouseenter", () => {
+          showOnInteraction();
+        });
+        container.addEventListener("mouseleave", () => {
+          hideOnInteraction();
+        });
+        container.addEventListener("click", () => {
+          showOnInteraction();
+        });
+        container.addEventListener("touchstart", () => {
+          showOnInteraction();
+        });
+      }
+      let isFirstThoughtsInteraction = true;
+      const thoughtInput2 = document.getElementById("thoughts");
+      if (thoughtInput2) {
+        const handleFirstThoughtsInteraction = () => {
+          if (isFirstThoughtsInteraction) {
+            isFirstThoughtsInteraction = false;
+            showTemp();
+          }
+        };
+        thoughtInput2.addEventListener("click", handleFirstThoughtsInteraction, { once: true });
+        thoughtInput2.addEventListener("focus", handleFirstThoughtsInteraction, { once: true });
+        thoughtInput2.addEventListener("pointerdown", handleFirstThoughtsInteraction, { once: true });
+      }
+      try {
+        const api = await waitForSpotifyApi();
+        let controller = null;
+        let currentTrack = null;
+        let isPlaying = false;
+        let isReady = false;
+        const updatePlayPauseButton = () => {
+          if (!playPauseBtn) return;
+          const playIcon = playPauseBtn.querySelector(".music-play-icon");
+          const pauseIcon = playPauseBtn.querySelector(".music-pause-icon");
+          if (playIcon && pauseIcon) {
+            if (isPlaying) {
+              playIcon.style.display = "none";
+              pauseIcon.style.display = "inline";
+              playPauseBtn.setAttribute("aria-label", "Pause music");
+            } else {
+              playIcon.style.display = "inline";
+              pauseIcon.style.display = "none";
+              playPauseBtn.setAttribute("aria-label", "Play music");
+            }
+          }
+        };
+        const mountIframe = async (track) => {
+          currentTrack = track;
+          if (!controller) {
+            wrapper.innerHTML = "";
+            const mount = document.createElement("div");
+            mount.className = "spotify-iframe";
+            wrapper.appendChild(mount);
+            controller = await createController(api, mount, track);
+            const waitForIframe = () => {
+              const iframe = wrapper.querySelector("iframe");
+              if (iframe) {
+                configureIframeAttributes(iframe);
+              } else {
+                setTimeout(waitForIframe, 50);
+              }
+            };
+            waitForIframe();
+            controller.addListener("ready", () => {
+              isReady = true;
+              const iframe = wrapper.querySelector("iframe");
+              if (iframe) {
+                configureIframeAttributes(iframe);
+              }
+              if (onReady) {
+                onReady();
+              }
+            });
+            controller.addListener("playback_update", ({ data }) => {
+              if (data) {
+                isPlaying = !data.isPaused;
+                updatePlayPauseButton();
+              }
+            });
+          } else {
+            const wasPlaying = isPlaying;
+            let hasResumed = false;
+            const resumeListener = ({ data }) => {
+              if (data && data.track && data.track.uri === track.uri && !hasResumed && wasPlaying) {
+                hasResumed = true;
+                if (controller == null ? void 0 : controller.play) {
+                  const playResult = controller.play();
+                  if (playResult && typeof playResult.catch === "function") {
+                    playResult.catch(() => {
+                    });
+                  }
+                }
+              }
+            };
+            controller.addListener("playback_update", resumeListener);
+            controller.loadUri(track.uri, "dark");
+            setTimeout(() => {
+              const iframe = wrapper.querySelector("iframe");
+              if (iframe) {
+                configureIframeAttributes(iframe);
+              }
+            }, 100);
+            setTimeout(() => {
+              hasResumed = true;
+            }, 2e3);
+          }
+        };
+        const setTrackById = async (id, { autoplay } = {}) => {
+          const track = tracks.find((candidate) => candidate.id === id) || tracks.find((candidate) => candidate.uri === id) || tracks[0];
+          if (!track) return;
+          const shouldAutoplay = autoplay !== void 0 ? autoplay : isPlaying;
+          await mountIframe(track);
+          if (shouldAutoplay && (controller == null ? void 0 : controller.play)) {
+            const playResult = controller.play();
+            if (playResult && typeof playResult.catch === "function") {
+              playResult.catch(() => {
+              });
+            }
+          }
+          if (trackSelect && trackSelect.value !== track.id) {
+            trackSelect.value = track.id;
+          }
+          showTemp();
+        };
+        trackSelect == null ? void 0 : trackSelect.addEventListener("change", (event) => {
+          setTrackById(event.target.value);
+        });
+        if (playPauseBtn) {
+          playPauseBtn.addEventListener("click", async () => {
+            if (!controller) return;
+            try {
+              if (isPlaying) {
+                if (controller.pause) {
+                  const pauseResult = controller.pause();
+                  if (pauseResult && typeof pauseResult.then === "function") {
+                    await pauseResult;
+                  }
+                  isPlaying = false;
+                }
+              } else {
+                if (controller.play) {
+                  const playResult = controller.play();
+                  if (playResult && typeof playResult.then === "function") {
+                    await playResult;
+                  }
+                  isPlaying = true;
+                }
+              }
+              updatePlayPauseButton();
+            } catch (error) {
+              console.error("Error toggling playback:", error);
+            }
+          });
+        }
+        const updateVolumeDisplay = (value) => {
+          if (volumeDisplay) {
+            const safeValue = clamp(Number(value) || 0, 0, 100);
+            volumeDisplay.textContent = `${Math.round(safeValue)}%`;
+          }
+        };
+        if (volumeSlider) {
+          updateVolumeDisplay(volumeSlider.value);
+          volumeSlider.addEventListener("input", (event) => {
+            const value = parseFloat(event.target.value) / 100;
+            updateVolumeDisplay(event.target.value);
+            if (controller == null ? void 0 : controller.setVolume) {
+              controller.setVolume(clamp(value, 0, 1));
+            }
+          });
+        }
+        await setTrackById(defaultTrackId != null ? defaultTrackId : tracks[0].id);
+        setContainerState(ContainerState.SHOWN);
+        updatePlayPauseButton();
+        const startPlayback = async () => {
+          if (controller == null ? void 0 : controller.play) {
+            try {
+              const playResult = controller.play();
+              if (playResult && typeof playResult.then === "function") {
+                await playResult;
+              }
+              isPlaying = true;
+              updatePlayPauseButton();
+            } catch (error) {
+            }
+          }
+        };
+        loadDisplayPreference();
+        return {
+          syncMusicControls: () => {
+          },
+          setTrackById,
+          getCurrentTrack: () => currentTrack,
+          startPlayback,
+          setVolume: (value) => {
+            if (controller == null ? void 0 : controller.setVolume) {
+              controller.setVolume(clamp(value, 0, 1));
+            }
+          },
+          showContainer: () => {
+            setContainerState(ContainerState.SHOWN);
+            cancelAutoHide();
+          },
+          showTemp,
+          hideContainer: () => {
+            setContainerState(ContainerState.HIDDEN);
+            cancelAutoHide();
+          },
+          toggleContainer: () => {
+            if (containerState === ContainerState.HIDDEN) {
+              setContainerState(ContainerState.SHOWN);
+              cancelAutoHide();
+            } else {
+              setContainerState(ContainerState.HIDDEN);
+              cancelAutoHide();
+            }
+          }
+        };
+      } catch (error) {
+        console.error("Failed to initialize Spotify embed", error);
+        return null;
+      }
+    };
+  }
+});
+
 // assets/js/modules/prompt-glow.js
 var setGlowState = (input, isActive) => {
   if (!input) {
@@ -38,9 +637,18 @@ var initPromptGlow = (input) => {
 
 // assets/js/modules/backgrounds.js
 var DEFAULT_BACKGROUNDS = [
-  "images/hubble-m44.webp",
-  "images/hubble-m48.webp",
-  "images/wild-duck-cluster.webp"
+  {
+    desktop: "/images/desktop/hubble-m44-optimized.webp",
+    mobile: "/images/mobile/hubble-m44-mobile.webp"
+  },
+  {
+    desktop: "/images/desktop/hubble-m48-optimized.webp",
+    mobile: "/images/mobile/hubble-m48-mobile.webp"
+  },
+  {
+    desktop: "/images/desktop/wild-duck-cluster-optimized.webp",
+    mobile: "/images/mobile/wild-duck-cluster-mobile.webp"
+  }
 ];
 var initBackgrounds = ({
   skyElement: skyElement2,
@@ -50,7 +658,42 @@ var initBackgrounds = ({
   if (!skyElement2 || !backgrounds.length) {
     return null;
   }
-  const choice = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+  const initialBg = getComputedStyle(document.documentElement).getPropertyValue("--initial-bg-url").trim();
+  if (initialBg && initialBg !== "none") {
+    const bgUrl = initialBg.replace(/url\(|\)|"/g, "");
+    const img2 = new Image();
+    img2.src = bgUrl;
+    const checkAndApply = () => {
+      const computedBg = getComputedStyle(skyElement2).backgroundImage;
+      if (!computedBg.includes(bgUrl) && !computedBg.includes("none")) {
+        skyElement2.style.backgroundImage = `url("${bgUrl}")`;
+      }
+      skyElement2.classList.add("loaded");
+    };
+    if (img2.complete && img2.naturalWidth > 0) {
+      checkAndApply();
+    } else {
+      img2.onload = checkAndApply;
+      img2.onerror = () => {
+        skyElement2.classList.add("loaded");
+      };
+    }
+    return bgUrl;
+  }
+  const urlParams = new URLSearchParams(window.location.search);
+  const bgParam = urlParams.get("bg");
+  let selectedBg;
+  if (bgParam !== null) {
+    const index = parseInt(bgParam, 10);
+    if (!isNaN(index) && index >= 0 && index < backgrounds.length) {
+      selectedBg = backgrounds[index];
+    }
+  }
+  if (!selectedBg) {
+    selectedBg = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+  }
+  const isMobile = window.innerWidth <= 768;
+  const choice = isMobile ? selectedBg.mobile : selectedBg.desktop;
   if (preloadLink) {
     preloadLink.href = choice;
   }
@@ -58,109 +701,18 @@ var initBackgrounds = ({
   img.src = choice;
   img.onload = () => {
     skyElement2.style.backgroundImage = `url("${choice}")`;
+    skyElement2.classList.add("loaded");
   };
   img.onerror = () => {
-    skyElement2.style.backgroundImage = `url("${choice}")`;
+    const fallback = isMobile ? selectedBg.desktop : choice;
+    skyElement2.style.backgroundImage = `url("${fallback}")`;
+    skyElement2.classList.add("loaded");
   };
   return choice;
 };
 
-// assets/js/modules/utils.js
-var clamp = (value, min, max) => {
-  if (Number.isNaN(value)) {
-    return min;
-  }
-  if (typeof max === "number") {
-    return Math.min(Math.max(value, min), max);
-  }
-  return Math.max(value, min);
-};
-var ensureOrder = (object, minKey, maxKey) => {
-  if (object[minKey] > object[maxKey]) {
-    const temp = object[minKey];
-    object[minKey] = object[maxKey];
-    object[maxKey] = temp;
-  }
-};
-var formatSeconds = (seconds) => {
-  if (!Number.isFinite(seconds)) {
-    return "0";
-  }
-  const decimals = seconds >= 5 ? 1 : 2;
-  const trimmed = Number(seconds.toFixed(decimals));
-  return trimmed.toString();
-};
-var applyConfig = (target, source) => {
-  Object.keys(source).forEach((key) => {
-    if (typeof source[key] === "object" && source[key] !== null) {
-      if (typeof target[key] !== "object" || target[key] === null) {
-        target[key] = Array.isArray(source[key]) ? [] : {};
-      }
-      applyConfig(target[key], source[key]);
-    } else {
-      target[key] = source[key];
-    }
-  });
-};
-var getViewportMetrics = () => {
-  if (typeof window === "undefined") {
-    return {
-      width: 0,
-      height: 0,
-      layoutWidth: 0,
-      layoutHeight: 0,
-      visualWidth: 0,
-      visualHeight: 0,
-      keyboardOffset: 0,
-      scale: 1,
-      offsetTop: 0,
-      offsetBottom: 0,
-      isKeyboardVisible: false
-    };
-  }
-  const innerWidth = window.innerWidth || 0;
-  const innerHeight = window.innerHeight || 0;
-  const visual = window.visualViewport;
-  if (!visual) {
-    return {
-      width: innerWidth,
-      height: innerHeight,
-      layoutWidth: innerWidth,
-      layoutHeight: innerHeight,
-      visualWidth: innerWidth,
-      visualHeight: innerHeight,
-      keyboardOffset: 0,
-      scale: 1,
-      offsetTop: 0,
-      offsetBottom: 0,
-      isKeyboardVisible: false
-    };
-  }
-  const offsetTop = typeof visual.offsetTop === "number" ? visual.offsetTop : 0;
-  const offsetBottom = Math.max(innerHeight - (visual.height + offsetTop), 0);
-  const isKeyboardVisible = offsetBottom > 0 || offsetTop > 0 || visual.height < innerHeight * 0.85;
-  const layoutWidth = innerWidth;
-  const layoutHeight = innerHeight || visual.height || 0;
-  const visualWidth = visual.width || layoutWidth;
-  const visualHeight = visual.height || layoutHeight;
-  const effectiveHeight = isKeyboardVisible ? Math.max(layoutHeight, visualHeight) : visualHeight;
-  const keyboardOffset = isKeyboardVisible ? offsetBottom : 0;
-  return {
-    width: visualWidth,
-    height: effectiveHeight,
-    layoutWidth,
-    layoutHeight,
-    visualWidth,
-    visualHeight,
-    keyboardOffset,
-    scale: typeof visual.scale === "number" ? visual.scale : 1,
-    offsetTop,
-    offsetBottom,
-    isKeyboardVisible
-  };
-};
-
 // assets/js/modules/animation-config.js
+init_utils();
 var DEFAULT_ANIMATION = {
   duration: {
     base: 4.2,
@@ -558,7 +1110,7 @@ var initializeSettings = async () => {
   }
   try {
     const response = await fetch(new URL("animation-settings.json", window.location.href).href, {
-      cache: "no-store"
+      cache: "default"
     });
     if (!response.ok) {
       throw new Error(`Failed to load settings: ${response.status}`);
@@ -643,6 +1195,7 @@ var initAnimationControls = ({
 };
 
 // assets/js/modules/thought-spawner.js
+init_utils();
 var DEFAULT_PROMPT_TEXT = "Type out your thoughts in this box and then watch them float away when you press enter.";
 var initThoughtSpawner = ({
   scene: scene2,
@@ -659,41 +1212,14 @@ var initThoughtSpawner = ({
   let activeModalChecker = () => false;
   const spawnThought = (text) => {
     var _a, _b, _c, _d, _e, _f;
+    if (document.body.classList.contains("loading")) {
+      return;
+    }
     if (!scene2 || !thoughtInput2 || !thoughtLayer2) {
       return;
     }
     const boxRect = thoughtInput2.getBoundingClientRect();
     const computed = window.getComputedStyle(thoughtInput2);
-    console.log("=== TEXTAREA DEBUG ===");
-    console.log("boxRect:", {
-      top: boxRect.top,
-      left: boxRect.left,
-      width: boxRect.width,
-      height: boxRect.height,
-      bottom: boxRect.bottom,
-      right: boxRect.right
-    });
-    console.log("computed styles:", {
-      borderTop: computed.borderTopWidth,
-      borderLeft: computed.borderLeftWidth,
-      paddingTop: computed.paddingTop,
-      paddingLeft: computed.paddingLeft,
-      position: computed.position,
-      top: computed.top,
-      left: computed.left
-    });
-    console.log("thoughtInput.getBoundingClientRect():", thoughtInput2.getBoundingClientRect());
-    console.log("thoughtLayer.getBoundingClientRect():", thoughtLayer2.getBoundingClientRect());
-    console.log("scene.getBoundingClientRect():", scene2 == null ? void 0 : scene2.getBoundingClientRect());
-    console.log("window.visualViewport:", window.visualViewport ? {
-      offsetTop: window.visualViewport.offsetTop,
-      offsetLeft: window.visualViewport.offsetLeft,
-      height: window.visualViewport.height,
-      width: window.visualViewport.width,
-      scale: window.visualViewport.scale
-    } : "not available");
-    console.log("window.scrollY:", window.scrollY);
-    console.log("window.scrollX:", window.scrollX);
     const thought = document.createElement("div");
     thought.className = "thought";
     const viewportMetrics = getViewportMetrics();
@@ -709,10 +1235,6 @@ var initThoughtSpawner = ({
     const paddingLeft = parseFloat(computed.paddingLeft) || 0;
     let originTop = boxRect.top + borderTop + paddingTop;
     const originTopBeforeAdjust = originTop;
-    console.log("=== POSITION CALCULATIONS ===");
-    console.log("borderTop:", borderTop, "paddingTop:", paddingTop);
-    console.log("originTop (before adjustments):", originTop);
-    console.log("originLeft:", originLeft);
     const spawnOffset = ((_a = animationConfig2.travel) == null ? void 0 : _a.spawnOffset) || 0;
     originTop = originTop + spawnOffset;
     const estimatedMaxThoughtHeight = Math.max(boxRect.height * 2, 200);
@@ -735,13 +1257,6 @@ var initThoughtSpawner = ({
     const adjustedTop = relativeTop + cssOffsetValue;
     thought.style.top = `${adjustedTop}px`;
     thought.style.width = `${boxRect.width}px`;
-    console.log("=== FINAL POSITION ===");
-    console.log("finalOriginTop (viewport):", finalOriginTop);
-    console.log("thoughtLayerTop (viewport):", thoughtLayerTop);
-    console.log("relativeTop (relative to thoughtLayer):", relativeTop);
-    console.log("cssOffsetValue:", cssOffsetValue);
-    console.log("adjustedTop (thought.style.top):", adjustedTop);
-    console.log("thought.style.left:", `${originLeft}px`);
     thought.style.padding = `0 ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`;
     thought.style.font = computed.font;
     thought.style.lineHeight = computed.lineHeight;
@@ -968,21 +1483,6 @@ var initThoughtSpawner = ({
       });
     }
     const thoughtRect = thought.getBoundingClientRect();
-    console.log("=== AFTER APPEND TO DOM ===");
-    console.log("thought.style.top:", thought.style.top);
-    console.log("thought.style.left:", thought.style.left);
-    console.log("thought.getBoundingClientRect():", {
-      top: thoughtRect.top,
-      left: thoughtRect.left,
-      width: thoughtRect.width,
-      height: thoughtRect.height,
-      bottom: thoughtRect.bottom,
-      right: thoughtRect.right
-    });
-    console.log("Difference from expected:", {
-      topDiff: thoughtRect.top - adjustedTop,
-      leftDiff: thoughtRect.left - originLeft
-    });
     const viewportHeightAfterAppend = viewportMetrics.visualHeight || viewportMetrics.height || window.innerHeight || 0;
     const thoughtBottomInViewport = thoughtRect.bottom;
     if (thoughtBottomInViewport > viewportHeightAfterAppend) {
@@ -1411,6 +1911,10 @@ var initThoughtSpawner = ({
     }
   });
   thoughtInput2.addEventListener("keydown", (event) => {
+    if (document.body.classList.contains("loading")) {
+      event.preventDefault();
+      return;
+    }
     if (promptActive) {
       releasePrompt();
       if (event.key === "Enter" && !event.shiftKey) {
@@ -1469,184 +1973,6 @@ var initThoughtSpawner = ({
     releasePrompt,
     setActiveModalChecker,
     isPromptActive: () => promptActive
-  };
-};
-
-// assets/js/modules/audio.js
-var initAudioControls = ({
-  audioEl = document.getElementById("bg-audio"),
-  muteButton = document.getElementById("music-toggle-mute"),
-  playButton = document.getElementById("music-toggle-play"),
-  trackSelect = document.getElementById("music-track"),
-  volumeSlider = document.getElementById("music-volume"),
-  musicForm = document.getElementById("music-form"),
-  volumeDisplays = ((_a) => (_a = document.querySelectorAll("[data-volume-display]")) != null ? _a : [])()
-} = {}) => {
-  var _a2, _b;
-  if (!audioEl) {
-    return null;
-  }
-  let storedVolumeBeforeMute = 0.3;
-  let audioFadedIn = false;
-  const musicTrackOptions = trackSelect ? Array.from(trackSelect.options).map((option) => ({
-    value: option.value,
-    absolute: new URL(option.value, window.location.href).href
-  })) : [];
-  if (volumeSlider) {
-    const initialVolume = parseFloat(volumeSlider.value);
-    if (!Number.isNaN(initialVolume)) {
-      audioEl.volume = clamp(initialVolume, 0, 1);
-    }
-  }
-  if (audioEl && musicTrackOptions.length > 0 && !audioEl.getAttribute("src")) {
-    audioEl.src = musicTrackOptions[0].absolute;
-  }
-  let currentTrack = audioEl ? new URL(
-    audioEl.getAttribute("src") || audioEl.src || ((_a2 = musicTrackOptions[0]) == null ? void 0 : _a2.absolute) || "",
-    window.location.href
-  ).href : ((_b = musicTrackOptions[0]) == null ? void 0 : _b.absolute) || "";
-  const updateVolumeDisplay = (value) => {
-    if (!volumeDisplays.length) {
-      return;
-    }
-    const safeValue = clamp(Number(value) || 0, 0, 1);
-    const formatted = `${Math.round(safeValue * 100)}%`;
-    volumeDisplays.forEach((node) => {
-      node.textContent = formatted;
-    });
-  };
-  const syncMusicControls = () => {
-    if (muteButton) {
-      muteButton.textContent = audioEl.muted ? "unmute" : "mute";
-    }
-    if (playButton) {
-      playButton.textContent = audioEl.paused ? "resume" : "pause";
-    }
-    if (trackSelect) {
-      const match = musicTrackOptions.find((option) => option.absolute === currentTrack);
-      if (match) {
-        trackSelect.value = match.value;
-      }
-    }
-    if (volumeSlider) {
-      volumeSlider.value = audioEl.muted ? 0 : audioEl.volume.toFixed(2);
-    }
-    updateVolumeDisplay(audioEl.muted ? 0 : audioEl.volume);
-  };
-  const fadeInAudio = () => {
-    if (audioFadedIn || audioEl.muted) {
-      return;
-    }
-    audioFadedIn = true;
-    audioEl.volume = 0;
-    const step = 0.015;
-    const target = 0.3;
-    const interval = window.setInterval(() => {
-      try {
-        if (audioEl.volume + step < target) {
-          audioEl.volume = Math.min(audioEl.volume + step, target);
-        } else {
-          audioEl.volume = target;
-          window.clearInterval(interval);
-        }
-      } catch (err) {
-        window.clearInterval(interval);
-      }
-    }, 200);
-  };
-  const setMusicTrackByValue = (value) => {
-    const match = musicTrackOptions.find((option) => option.value === value) || (value ? { value, absolute: new URL(value, window.location.href).href } : null);
-    if (!match) {
-      return;
-    }
-    currentTrack = match.absolute;
-    audioEl.src = match.absolute;
-    audioEl.load();
-    audioEl.play().catch(() => {
-    });
-    syncMusicControls();
-  };
-  if (muteButton) {
-    muteButton.addEventListener("click", () => {
-      if (audioEl.muted) {
-        audioEl.muted = false;
-        audioEl.volume = storedVolumeBeforeMute > 0 ? storedVolumeBeforeMute : 0.3;
-      } else {
-        if (audioEl.volume > 0) {
-          storedVolumeBeforeMute = audioEl.volume;
-        }
-        audioEl.volume = 0;
-        audioEl.muted = true;
-      }
-      syncMusicControls();
-    });
-  }
-  if (playButton) {
-    playButton.addEventListener("click", () => {
-      if (audioEl.paused) {
-        audioEl.play().catch(() => {
-        });
-      } else {
-        audioEl.pause();
-      }
-      syncMusicControls();
-    });
-  }
-  if (trackSelect) {
-    trackSelect.addEventListener("change", (event) => {
-      setMusicTrackByValue(event.target.value);
-    });
-  }
-  if (volumeSlider) {
-    volumeSlider.addEventListener("input", (event) => {
-      const value = parseFloat(event.target.value);
-      if (Number.isNaN(value)) {
-        return;
-      }
-      const clampedValue = clamp(value, 0, 1);
-      if (clampedValue > 0) {
-        if (audioEl.muted) {
-          audioEl.muted = false;
-        }
-        audioEl.volume = clampedValue;
-        storedVolumeBeforeMute = clampedValue;
-      } else {
-        audioEl.muted = true;
-        audioEl.volume = 0;
-      }
-      syncMusicControls();
-    });
-  }
-  if (volumeDisplays.length) {
-    updateVolumeDisplay(audioEl.volume);
-  }
-  if (musicForm) {
-    musicForm.addEventListener("submit", (event) => event.preventDefault());
-  }
-  window.addEventListener("load", () => {
-    const startFade = () => {
-      fadeInAudio();
-      audioEl.removeEventListener("canplay", startFade);
-    };
-    audioEl.addEventListener("canplay", startFade, { once: true });
-    audioEl.play().then(() => {
-      fadeInAudio();
-    }).catch(() => {
-      document.addEventListener(
-        "click",
-        () => {
-          audioEl.play().then(fadeInAudio).catch(() => {
-          });
-        },
-        { once: true }
-      );
-    });
-  });
-  syncMusicControls();
-  return {
-    fadeInAudio,
-    syncMusicControls,
-    setMusicTrackByValue
   };
 };
 
@@ -1834,6 +2160,7 @@ var initNavigationToggle = ({
 };
 
 // assets/js/modules/viewport.js
+init_utils();
 var DEBUG_ENABLED = (() => {
   if (typeof window === "undefined") {
     return false;
@@ -2604,9 +2931,6 @@ if (typeof window !== "undefined") {
     localStorage.setItem("thoughts-debug", "false");
     window.location.reload();
   };
-  if (DEBUG_ENABLED) {
-    console.log("Thoughts Debug: Available functions:", Object.keys(window.__thoughtsDebug));
-  }
 }
 
 // assets/js/main.js
@@ -2614,36 +2938,143 @@ var scene = document.getElementById("scene");
 var thoughtInput = document.getElementById("thoughts");
 var thoughtLayer = document.getElementById("thought-layer");
 var skyElement = document.querySelector(".stars");
-initPromptGlow(thoughtInput);
-var viewport = initViewportUnits();
-initBackgrounds({ skyElement });
-ensureAnimationConfigDefaults();
-var audioControls = initAudioControls();
-var animationControls = null;
-var ensureAnimationControls = () => {
-  if (!animationControls) {
-    animationControls = initAnimationControls();
+var body = document.body;
+var loadingState = {
+  background: false,
+  animationConfig: false,
+  thoughtSpawner: false,
+  spotify: false,
+  isReady: function() {
+    return this.background && this.animationConfig && this.thoughtSpawner && this.spotify;
+  },
+  checkReady: function() {
+    if (this.isReady() && body.classList.contains("loading")) {
+      body.classList.remove("loading");
+      if (thoughtInput) {
+        thoughtInput.disabled = false;
+        thoughtInput.setAttribute("placeholder", "");
+      }
+    }
   }
-  return animationControls;
 };
-var modals = initModals({
-  onMusicOpen: audioControls == null ? void 0 : audioControls.syncMusicControls,
-  onAnimationsOpen: () => {
-    var _a;
-    const controls = ensureAnimationControls();
-    (_a = controls == null ? void 0 : controls.populateAnimationsForm) == null ? void 0 : _a.call(controls);
+if (thoughtInput) {
+  thoughtInput.disabled = true;
+  thoughtInput.setAttribute("placeholder", "Loading...");
+}
+var viewport = initViewportUnits();
+var backgroundInit = initBackgrounds({ skyElement });
+if (backgroundInit) {
+  const checkBackgroundLoaded = () => {
+    if (skyElement && skyElement.classList.contains("loaded")) {
+      loadingState.background = true;
+      loadingState.checkReady();
+    } else {
+      setTimeout(checkBackgroundLoaded, 50);
+    }
+  };
+  checkBackgroundLoaded();
+} else {
+  loadingState.background = true;
+  loadingState.checkReady();
+}
+var defer = (fn, delay = 0) => {
+  if (typeof requestIdleCallback !== "undefined") {
+    requestIdleCallback(fn, { timeout: delay });
+  } else {
+    setTimeout(fn, delay);
   }
-});
-initNavigationToggle();
-var thoughtSpawner = initThoughtSpawner({
-  scene,
-  thoughtInput,
-  thoughtLayer,
-  animationConfig,
-  viewport
-});
-thoughtSpawner == null ? void 0 : thoughtSpawner.setActiveModalChecker(modals ? modals.isAnyModalActive : () => false);
-if (viewport && typeof window !== "undefined") {
-  window.addEventListener("focus", viewport.refresh);
+};
+defer(() => {
+  initPromptGlow(thoughtInput);
+  if (scene) {
+    scene.classList.add("loaded");
+  }
+}, 0);
+defer(() => {
+  ensureAnimationConfigDefaults();
+  loadingState.animationConfig = true;
+  loadingState.checkReady();
+}, 50);
+defer(async () => {
+  let spotifyControls = null;
+  try {
+    const { initSpotifyControls: initSpotifyControls2 } = await Promise.resolve().then(() => (init_spotify_embed(), spotify_embed_exports));
+    spotifyControls = await initSpotifyControls2({
+      thoughtInput,
+      onReady: () => {
+        loadingState.spotify = true;
+        loadingState.checkReady();
+      }
+    });
+    if (!spotifyControls) {
+      console.warn("Spotify controls initialization returned null");
+      loadingState.spotify = true;
+      loadingState.checkReady();
+    }
+  } catch (error) {
+    console.error("Failed to initialize Spotify embed:", error);
+    loadingState.spotify = true;
+    loadingState.checkReady();
+  }
+  if (spotifyControls && thoughtInput) {
+    const startMusicOnFirstInteraction = () => {
+      if (spotifyControls && spotifyControls.startPlayback) {
+        spotifyControls.startPlayback().catch(() => {
+        });
+      }
+    };
+    const handleFirstInteraction = () => {
+      startMusicOnFirstInteraction();
+      thoughtInput.removeEventListener("focus", handleFirstInteraction);
+      thoughtInput.removeEventListener("click", handleFirstInteraction);
+      thoughtInput.removeEventListener("pointerdown", handleFirstInteraction);
+    };
+    thoughtInput.addEventListener("focus", handleFirstInteraction, { once: true });
+    thoughtInput.addEventListener("click", handleFirstInteraction, { once: true });
+    thoughtInput.addEventListener("pointerdown", handleFirstInteraction, { once: true });
+  }
+  let animationControls = null;
+  const ensureAnimationControls = () => {
+    if (!animationControls) {
+      animationControls = initAnimationControls();
+    }
+    return animationControls;
+  };
+  const modals = initModals({
+    onMusicOpen: () => {
+      if (spotifyControls && spotifyControls.syncMusicControls) {
+        spotifyControls.syncMusicControls();
+      }
+    },
+    onAnimationsOpen: () => {
+      var _a;
+      const controls = ensureAnimationControls();
+      (_a = controls == null ? void 0 : controls.populateAnimationsForm) == null ? void 0 : _a.call(controls);
+    }
+  });
+  initNavigationToggle();
+  const thoughtSpawner = initThoughtSpawner({
+    scene,
+    thoughtInput,
+    thoughtLayer,
+    animationConfig,
+    viewport
+  });
+  if (thoughtSpawner) {
+    loadingState.thoughtSpawner = true;
+    loadingState.checkReady();
+  }
+  thoughtSpawner == null ? void 0 : thoughtSpawner.setActiveModalChecker(modals ? modals.isAnyModalActive : () => false);
+  if (viewport && typeof window !== "undefined") {
+    window.addEventListener("focus", viewport.refresh);
+  }
+}, 100);
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").then(() => {
+    }).catch((error) => {
+      console.error("Service Worker registration failed:", error);
+    });
+  });
 }
 //# sourceMappingURL=main.js.map
