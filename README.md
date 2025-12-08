@@ -160,5 +160,5 @@ Use `npm run dev` during development to keep `dist/` updated as you edit `assets
 
 - Inspired by The Quiet Place Project – Thoughts Room by [Amitay Tweeto](https://x.com/amitayt)
 - Star-field imagery courtesy of NASA / Hubble
-- Music: "One Day in August" by Marc Teichert ()
-- Recreated & maintained by Josh Swerdlow
+- Music: [One Day in August](https://open.spotify.com/track/4qHBvrzFbpUWeFxhdbpar8?si=7534e36c461e4320) by [Marc Teichert](https://open.spotify.com/artist/4kejsujyv9SlWKhFjRO7n4?si=E2_D4GxiT6mI4geFicdSkQ) ([Spotify](https://open.spotify.com/track/4qHBvrzFbpUWeFxhdbpar8?si=7534e36c461e4320), [Apple Music](https://music.apple.com/us/artist/marc-teichert/514192491), [Bandcamp](https://marcteichert.bandcamp.com/)).
+- Recreated & maintained by Josh Swerdlow (@[josh-swerdlow](https://github.com/josh-swerdlow))
