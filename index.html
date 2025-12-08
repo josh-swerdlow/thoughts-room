@@ -222,7 +222,7 @@
             ×
           </button>
         </header>
-        <div class="modal-body">
+        <div class="modal-body text-small">
           <p>
             This is a room for you to let your thoughts flow out of your head and into the stars. You can type your thoughts into the text area and press enter to release them. You can alter the sounds and the animations to your liking.
           </p>
@@ -231,7 +231,10 @@
             <a href="https://github.com/josh-swerdlow/thoughts-room" target="_blank" rel="noreferrer noopener">GitHub</a>.
           </p>
           <p>
-            This is a remake of the thoughts room from "The Quiet Place" project. Created by https://x.com/amitayt.
+            This is a remake of the thoughts room from "The Quiet Place" project. Created by <a href="https://x.com/amitayt" target="_blank" rel="noreferrer noopener">Amit Tweeto</a>.
+          </p>
+          <p>
+            The original site featured <a href="https://open.spotify.com/track/4qHBvrzFbpUWeFxhdbpar8?si=7534e36c461e4320" target="_blank" rel="noreferrer noopener">One Day in August</a> by <a href="https://open.spotify.com/artist/4kejsujyv9SlWKhFjRO7n4?si=E2_D4GxiT6mI4geFicdSkQ" target="_blank" rel="noreferrer noopener">Marc Teichert</a> (<a href="https://open.spotify.com/track/4qHBvrzFbpUWeFxhdbpar8?si=7534e36c461e4320" target="_blank" rel="noreferrer noopener">Spotify</a>, <a href="https://music.apple.com/us/artist/marc-teichert/514192491" target="_blank" rel="noreferrer noopener">Apple Music</a>, <a href="https://marcteichert.bandcamp.com/" target="_blank" rel="noreferrer noopener">Bandcamp</a>). With his permission, One Day in August once again provides audio for this quiet place to reflect on your thoughts.
           </p>
         </div>
       </div>
@@ -248,7 +251,7 @@
       <div class="modal-backdrop" data-modal-close></div>
       <div class="modal-panel">
         <header class="modal-header">
-          <h2 id="music-title">music</h2>
+          <h2 id="music-title">Music Settings</h2>
           <button type="button" class="modal-close" data-modal-close aria-label="close music">
             ×
           </button>
@@ -264,52 +267,42 @@
             <span class="music-pause-icon" style="display: none;">⏸</span>
           </button>
           <label class="music-select">
-            audio track
+            Select Music
             <select id="music-track">
               <option
                 value="4qHBvrzFbpUWeFxhdbpar8"
                 data-title="One day in August"
                 data-artist="Marc Teichert"
+                data-type="track"
                 data-theme="0">
                 One day in August by Marc Teichert
               </option>
-              <option
-                value="6kRO6dFs2oQPhB7uMxx42B"
-                data-title="Daydream"
-                data-artist="Marc Teichert"
-                data-theme="0">
-                Daydream by Marc Teichert
-              </option>
-              <option
-                value="7yYezAet9r4sUCjVQUaGMZ"
-                data-title="Chickentown"
-                data-artist="Marc Teichert"
-                data-theme="0">
-                Chickentown by Marc Teichert
-              </option>
             </select>
           </label>
-          <label class="music-volume-setting">
-            volume
-            <div class="music-volume-control">
+          <label class="music-select">
+            Add music (spotify URI only)
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
               <input
-                type="range"
-                id="music-volume"
-                class="music-volume-slider"
-                min="0"
-                max="100"
-                value="50"
-                step="1"
-                aria-label="Volume"
+                type="text"
+                id="music-url-input"
+                placeholder="https://open.spotify.com/playlist/..."
+                style="flex: 1; padding: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.3); color: white; border-radius: 4px;"
               />
-              <span class="music-volume-display" data-volume-display>50%</span>
+              <button
+                type="button"
+                id="music-url-submit"
+                class="glass-button"
+                style="padding: 0.5rem 1rem;"
+              >
+                Add
+              </button>
             </div>
           </label>
           <label class="music-select">
-            display
+            Display Music Player
             <select id="music-display">
-              <option value="shown">shown</option>
-              <option value="hidden">hidden</option>
+              <option value="shown">Shown</option>
+              <option value="hidden">Hidden</option>
             </select>
           </label>
         </form>
@@ -343,8 +336,6 @@
         </form>
       </div>
     </div>
-
-    <!-- Old audio element - replaced with Bandcamp embed -->
 
     <script id="animation-settings-data" type="application/json">
       {

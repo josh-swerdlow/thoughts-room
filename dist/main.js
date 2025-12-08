@@ -113,7 +113,7 @@ var spotify_embed_exports = {};
 __export(spotify_embed_exports, {
   initSpotifyControls: () => initSpotifyControls
 });
-var ContainerState, PREAPPROVED_TRACKS, SPOTIFY_IFRAME_SRC, THEME_VALUE, EMBED_HEIGHT, spotifyApiPromise, ensureSpotifyScript, waitForSpotifyApi, toSpotifyUri, mergeTrackSources, createController, configureIframeAttributes, STORAGE_KEY_DISPLAY, AUTO_HIDE_DELAY_MS, initSpotifyControls;
+var ContainerState, PREAPPROVED_TRACKS, SPOTIFY_IFRAME_SRC, THEME_VALUE, spotifyApiPromise, ensureSpotifyScript, waitForSpotifyApi, toSpotifyUri, parseSpotifyUrl, fetchSpotifyOEmbed, mergeTrackSources, createController, configureIframeAttributes, STORAGE_KEY_DISPLAY, AUTO_HIDE_DELAY_MS, initSpotifyControls;
 var init_spotify_embed = __esm({
   "assets/js/modules/spotify-embed.js"() {
     init_utils();
@@ -127,24 +127,12 @@ var init_spotify_embed = __esm({
         id: "4qHBvrzFbpUWeFxhdbpar8",
         uri: "spotify:track:4qHBvrzFbpUWeFxhdbpar8",
         title: "One day in August",
-        artist: "Marc Teichert"
-      },
-      {
-        id: "6kRO6dFs2oQPhB7uMxx42B",
-        uri: "spotify:track:6kRO6dFs2oQPhB7uMxx42B",
-        title: "Daydream",
-        artist: "Marc Teichert"
-      },
-      {
-        id: "7yYezAet9r4sUCjVQUaGMZ",
-        uri: "spotify:track:7yYezAet9r4sUCjVQUaGMZ",
-        title: "Chickentown",
-        artist: "Marc Teichert"
+        artist: "Marc Teichert",
+        type: "track"
       }
     ];
     SPOTIFY_IFRAME_SRC = "https://open.spotify.com/embed/iframe-api/v1";
     THEME_VALUE = "dark";
-    EMBED_HEIGHT = 80;
     spotifyApiPromise = null;
     ensureSpotifyScript = () => {
       var _a;
@@ -181,13 +169,56 @@ var init_spotify_embed = __esm({
       if (value.startsWith("http")) {
         try {
           const url = new URL(value);
-          const id = url.pathname.split("/").filter(Boolean).pop();
+          const pathParts = url.pathname.split("/").filter(Boolean);
+          if (pathParts.length >= 2) {
+            const type = pathParts[0];
+            const id2 = pathParts[1];
+            if (id2 && (type === "playlist" || type === "track" || type === "album" || type === "artist" || type === "episode" || type === "show")) {
+              return `spotify:${type}:${id2}`;
+            }
+          }
+          const id = pathParts[pathParts.length - 1];
           return id ? `spotify:track:${id}` : null;
         } catch {
           return null;
         }
       }
       return `spotify:track:${value}`;
+    };
+    parseSpotifyUrl = (urlString) => {
+      if (!urlString) return null;
+      const uri = toSpotifyUri(urlString);
+      if (!uri) return null;
+      const match = uri.match(/^spotify:(\w+):(.+)$/);
+      if (!match) return null;
+      const [, type, id] = match;
+      return {
+        id,
+        uri,
+        type,
+        // 'playlist', 'track', 'album', etc.
+        title: type === "playlist" ? "Custom Playlist" : "Custom Track",
+        artist: "Spotify"
+      };
+    };
+    fetchSpotifyOEmbed = async (spotifyUrl) => {
+      try {
+        const encodedUrl = encodeURIComponent(spotifyUrl);
+        const oembedUrl = `https://open.spotify.com/oembed?url=${encodedUrl}`;
+        const response = await fetch(oembedUrl);
+        if (!response.ok) {
+          throw new Error(`oEmbed API returned ${response.status}`);
+        }
+        const data = await response.json();
+        return {
+          title: data.title,
+          thumbnailUrl: data.thumbnail_url,
+          type: data.type
+        };
+      } catch (error) {
+        console.error("Error fetching oEmbed data:", error);
+        return null;
+      }
     };
     mergeTrackSources = (trackSelect) => {
       const merged = [...PREAPPROVED_TRACKS];
@@ -201,7 +232,9 @@ var init_spotify_embed = __esm({
           id,
           uri,
           title: option.dataset.title || ((_a = option.textContent) == null ? void 0 : _a.trim()) || id,
-          artist: option.dataset.artist || "Unknown artist"
+          artist: option.dataset.artist || "Unknown artist",
+          type: option.dataset.type || "track"
+          // Default to 'track' for existing options
         };
         const existingIdx = merged.findIndex((track) => track.id === id);
         if (existingIdx >= 0) {
@@ -219,7 +252,8 @@ var init_spotify_embed = __esm({
           uri: track.uri,
           theme: THEME_VALUE,
           width: "100%",
-          height: EMBED_HEIGHT
+          height: "100%"
+          // Let CSS control the height
         },
         (controller) => {
           if (!controller) {
@@ -241,8 +275,6 @@ var init_spotify_embed = __esm({
       container = document.getElementById("spotify-embed-container"),
       trackSelect = document.getElementById("music-track"),
       displaySelect = document.getElementById("music-display"),
-      volumeSlider = document.getElementById("music-volume"),
-      volumeDisplay = document.querySelector("[data-volume-display]"),
       playPauseBtn = document.getElementById("music-play-pause"),
       defaultTrackId,
       onReady
@@ -418,8 +450,197 @@ var init_spotify_embed = __esm({
             }
           }
         };
+        const promptForLabel = (item, onSave, options = {}) => {
+          const { askForArtistOnly = false } = options;
+          return new Promise((resolve) => {
+            const modal = document.createElement("div");
+            modal.className = "modal active";
+            modal.setAttribute("role", "dialog");
+            modal.setAttribute("aria-modal", "true");
+            modal.setAttribute("aria-hidden", "false");
+            const backdrop = document.createElement("div");
+            backdrop.className = "modal-backdrop";
+            const panel = document.createElement("div");
+            panel.className = "modal-panel";
+            const header = document.createElement("header");
+            header.className = "modal-header";
+            const title = document.createElement("h2");
+            title.textContent = askForArtistOnly ? "label artist" : item.type === "playlist" ? "label playlist" : "label track";
+            const closeBtn = document.createElement("button");
+            closeBtn.type = "button";
+            closeBtn.className = "modal-close";
+            closeBtn.setAttribute("aria-label", "close");
+            closeBtn.textContent = "\xD7";
+            header.appendChild(title);
+            header.appendChild(closeBtn);
+            const form = document.createElement("form");
+            form.className = "modal-form";
+            let input, artistInput;
+            if (askForArtistOnly) {
+              const trackLabel = document.createElement("label");
+              trackLabel.className = "music-select";
+              trackLabel.style.marginBottom = "var(--space-md)";
+              const trackLabelText = document.createElement("span");
+              trackLabelText.textContent = "track name";
+              trackLabelText.style.display = "block";
+              trackLabelText.style.marginBottom = "var(--space-xs)";
+              const trackDisplay = document.createElement("div");
+              trackDisplay.textContent = item.title;
+              trackDisplay.style.padding = "0.5rem";
+              trackDisplay.style.border = "1px solid rgba(255, 255, 255, 0.1)";
+              trackDisplay.style.background = "rgba(0, 0, 0, 0.2)";
+              trackDisplay.style.color = "rgba(255, 255, 255, 0.7)";
+              trackDisplay.style.borderRadius = "4px";
+              trackDisplay.style.fontSize = "var(--font-size-interactive-sm)";
+              trackLabel.appendChild(trackLabelText);
+              trackLabel.appendChild(trackDisplay);
+              form.appendChild(trackLabel);
+              const artistLabel = document.createElement("label");
+              artistLabel.className = "music-select";
+              artistLabel.style.marginBottom = "var(--space-md)";
+              const artistLabelText = document.createElement("span");
+              artistLabelText.textContent = "artist name";
+              artistLabelText.style.display = "block";
+              artistLabelText.style.marginBottom = "var(--space-xs)";
+              artistInput = document.createElement("input");
+              artistInput.type = "text";
+              artistInput.placeholder = "Artist Name";
+              artistInput.value = item.artist === "Spotify" ? "" : item.artist;
+              artistInput.style.width = "100%";
+              artistInput.style.padding = "0.5rem";
+              artistInput.style.border = "1px solid rgba(255, 255, 255, 0.2)";
+              artistInput.style.background = "rgba(0, 0, 0, 0.3)";
+              artistInput.style.color = "white";
+              artistInput.style.borderRadius = "4px";
+              artistInput.style.fontSize = "var(--font-size-interactive-sm)";
+              artistLabel.appendChild(artistLabelText);
+              artistLabel.appendChild(artistInput);
+              form.appendChild(artistLabel);
+            } else {
+              const label = document.createElement("label");
+              label.className = "music-select";
+              label.style.marginBottom = "var(--space-md)";
+              const labelText = document.createElement("span");
+              labelText.textContent = item.type === "playlist" ? "playlist name" : "track name";
+              labelText.style.display = "block";
+              labelText.style.marginBottom = "var(--space-xs)";
+              input = document.createElement("input");
+              input.type = "text";
+              input.placeholder = item.type === "playlist" ? "My Playlist" : "Song Name";
+              input.value = item.title === "Custom Playlist" || item.title === "Custom Track" ? "" : item.title;
+              input.style.width = "100%";
+              input.style.padding = "0.5rem";
+              input.style.border = "1px solid rgba(255, 255, 255, 0.2)";
+              input.style.background = "rgba(0, 0, 0, 0.3)";
+              input.style.color = "white";
+              input.style.borderRadius = "4px";
+              input.style.fontSize = "var(--font-size-interactive-sm)";
+              label.appendChild(labelText);
+              label.appendChild(input);
+              form.appendChild(label);
+            }
+            const buttonContainer = document.createElement("div");
+            buttonContainer.style.display = "flex";
+            buttonContainer.style.gap = "var(--space-sm)";
+            buttonContainer.style.justifyContent = "flex-end";
+            buttonContainer.style.marginTop = "var(--space-md)";
+            const saveBtn = document.createElement("button");
+            saveBtn.type = "button";
+            saveBtn.className = "glass-button";
+            saveBtn.textContent = "save";
+            saveBtn.style.padding = "0.5rem 1rem";
+            const skipBtn = document.createElement("button");
+            skipBtn.type = "button";
+            skipBtn.className = "glass-button";
+            skipBtn.textContent = "skip";
+            skipBtn.style.padding = "0.5rem 1rem";
+            buttonContainer.appendChild(skipBtn);
+            buttonContainer.appendChild(saveBtn);
+            form.appendChild(buttonContainer);
+            panel.appendChild(header);
+            panel.appendChild(form);
+            modal.appendChild(backdrop);
+            modal.appendChild(panel);
+            document.body.appendChild(modal);
+            const focusInput = askForArtistOnly ? artistInput : input;
+            setTimeout(() => focusInput.focus(), 100);
+            const cleanup = () => {
+              document.body.removeChild(modal);
+            };
+            const handleSave = () => {
+              if (askForArtistOnly) {
+                const newArtist = artistInput.value.trim();
+                if (newArtist) {
+                  item.artist = newArtist;
+                  if (onSave) {
+                    onSave(item);
+                  }
+                }
+                cleanup();
+                resolve(newArtist || null);
+              } else {
+                const newTitle = input.value.trim();
+                if (newTitle) {
+                  item.title = newTitle;
+                  if (onSave) {
+                    onSave(item);
+                  }
+                }
+                cleanup();
+                resolve(newTitle || null);
+              }
+            };
+            const handleSkip = () => {
+              cleanup();
+              resolve(null);
+            };
+            saveBtn.addEventListener("click", handleSave);
+            skipBtn.addEventListener("click", handleSkip);
+            closeBtn.addEventListener("click", handleSkip);
+            backdrop.addEventListener("click", handleSkip);
+            const keyInput = askForArtistOnly ? artistInput : input;
+            keyInput.addEventListener("keypress", (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSave();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                handleSkip();
+              }
+            });
+          });
+        };
+        const addToDropdown = (item) => {
+          if (!trackSelect) return;
+          const existingOption = trackSelect.querySelector(`option[value="${item.id}"]`);
+          if (existingOption) {
+            existingOption.textContent = item.type === "playlist" ? `\u{1F4C1} ${item.title}` : `${item.title} by ${item.artist}`;
+            existingOption.dataset.title = item.title;
+            existingOption.dataset.artist = item.artist;
+            existingOption.dataset.uri = item.uri;
+            existingOption.dataset.type = item.type;
+            return;
+          }
+          const option = document.createElement("option");
+          option.value = item.id;
+          option.textContent = item.type === "playlist" ? `\u{1F4C1} ${item.title}` : `${item.title} by ${item.artist}`;
+          option.dataset.title = item.title;
+          option.dataset.artist = item.artist;
+          option.dataset.uri = item.uri;
+          option.dataset.type = item.type;
+          trackSelect.appendChild(option);
+          if (!tracks.find((t) => t.id === item.id)) {
+            tracks.push(item);
+          }
+        };
         const mountIframe = async (track) => {
           currentTrack = track;
+          if (typeof window !== "undefined" && window.__spotifyController) {
+            window.__spotifyCurrentTrack = currentTrack;
+          }
+          if (wrapper) {
+            wrapper.setAttribute("data-spotify-type", track.type || "track");
+          }
           if (!controller) {
             wrapper.innerHTML = "";
             const mount = document.createElement("div");
@@ -467,7 +688,16 @@ var init_spotify_embed = __esm({
               }
             };
             controller.addListener("playback_update", resumeListener);
-            controller.loadUri(track.uri, "dark");
+            if (wrapper) {
+              wrapper.setAttribute("data-spotify-type", track.type || "track");
+            }
+            const loadResult = controller.loadUri(track.uri, "dark");
+            if (loadResult && typeof loadResult.then === "function") {
+              loadResult.then(() => {
+              }).catch((error) => {
+                console.error("\u274C Error loading URI:", error);
+              });
+            }
             setTimeout(() => {
               const iframe = wrapper.querySelector("iframe");
               if (iframe) {
@@ -480,7 +710,7 @@ var init_spotify_embed = __esm({
           }
         };
         const setTrackById = async (id, { autoplay } = {}) => {
-          const track = tracks.find((candidate) => candidate.id === id) || tracks.find((candidate) => candidate.uri === id) || tracks[0];
+          const track = tracks.find((candidate) => candidate.id === id) || tracks.find((candidate) => candidate.uri === id) || tracks.find((candidate) => candidate.uri === `spotify:track:${id}`) || tracks.find((candidate) => candidate.uri === `spotify:playlist:${id}`) || tracks[0];
           if (!track) return;
           const shouldAutoplay = autoplay !== void 0 ? autoplay : isPlaying;
           await mountIframe(track);
@@ -499,46 +729,224 @@ var init_spotify_embed = __esm({
         trackSelect == null ? void 0 : trackSelect.addEventListener("change", (event) => {
           setTrackById(event.target.value);
         });
+        const urlInput = document.getElementById("music-url-input");
+        const urlSubmitBtn = document.getElementById("music-url-submit");
+        const handleCustomUrl = async (urlString) => {
+          const parsed = parseSpotifyUrl(urlString);
+          if (!parsed) {
+            console.warn("Invalid Spotify URL");
+            return;
+          }
+          const oembedData = await fetchSpotifyOEmbed(urlString);
+          const customItem = {
+            id: parsed.id,
+            uri: parsed.uri,
+            title: (oembedData == null ? void 0 : oembedData.title) || parsed.title,
+            artist: parsed.artist,
+            // Will be updated if we get it from playback_update
+            type: parsed.type
+          };
+          addToDropdown(customItem);
+          currentTrack = customItem;
+          let hasPromptedForArtist = false;
+          let hasGotArtistFromPlayback = false;
+          let hasPromptedForFullLabel = false;
+          const maybePromptForArtist = () => {
+            if (hasPromptedForArtist || hasGotArtistFromPlayback) return;
+            if (customItem.type === "track" && customItem.artist === "Spotify") {
+              hasPromptedForArtist = true;
+              promptForLabel(customItem, (updatedItem) => {
+                addToDropdown(updatedItem);
+              }, { askForArtistOnly: true });
+            }
+          };
+          const maybePromptForFullLabel = () => {
+            if (hasPromptedForFullLabel) return;
+            const stillHasDefaultName = customItem.title === "Custom Playlist" || customItem.title === "Custom Track";
+            if (stillHasDefaultName) {
+              hasPromptedForFullLabel = true;
+              promptForLabel(customItem, (updatedItem) => {
+                addToDropdown(updatedItem);
+              });
+            }
+          };
+          if (!controller) {
+            if (wrapper) {
+              wrapper.setAttribute("data-spotify-type", customItem.type || "track");
+            }
+            wrapper.innerHTML = "";
+            const mount = document.createElement("div");
+            mount.className = "spotify-iframe";
+            wrapper.appendChild(mount);
+            controller = await createController(api, mount, customItem);
+            const waitForIframe = () => {
+              const iframe = wrapper.querySelector("iframe");
+              if (iframe) {
+                configureIframeAttributes(iframe);
+              } else {
+                setTimeout(waitForIframe, 50);
+              }
+            };
+            waitForIframe();
+            controller.addListener("ready", () => {
+              isReady = true;
+              const iframe = wrapper.querySelector("iframe");
+              if (iframe) {
+                configureIframeAttributes(iframe);
+              }
+              if (onReady) {
+                onReady();
+              }
+            });
+            controller.addListener("playback_update", ({ data }) => {
+              if (data) {
+                isPlaying = !data.isPaused;
+                updatePlayPauseButton();
+                if (data.track && customItem.type === "track") {
+                  if (data.track.artist) {
+                    hasGotArtistFromPlayback = true;
+                    customItem.artist = data.track.artist;
+                    const option = trackSelect == null ? void 0 : trackSelect.querySelector(`option[value="${customItem.id}"]`);
+                    if (option) {
+                      option.textContent = `${customItem.title} by ${data.track.artist}`;
+                      option.dataset.title = customItem.title;
+                      option.dataset.artist = data.track.artist;
+                    }
+                    addToDropdown(customItem);
+                  } else {
+                    setTimeout(() => maybePromptForArtist(), 1e3);
+                  }
+                }
+              }
+            });
+            if (customItem.type === "track" && !(oembedData == null ? void 0 : oembedData.title)) {
+              setTimeout(() => {
+                if (customItem.title === "Custom Track") {
+                  maybePromptForFullLabel();
+                }
+              }, 2e3);
+            } else if (customItem.type === "track") {
+              setTimeout(() => maybePromptForArtist(), 2e3);
+            }
+          } else {
+            const wasPlaying = isPlaying;
+            let hasResumed = false;
+            const resumeListener = ({ data }) => {
+              if (data && data.track && data.track.uri === customItem.uri && !hasResumed && wasPlaying) {
+                hasResumed = true;
+                if (controller == null ? void 0 : controller.play) {
+                  const playResult = controller.play();
+                  if (playResult && typeof playResult.catch === "function") {
+                    playResult.catch(() => {
+                    });
+                  }
+                }
+              }
+            };
+            controller.addListener("playback_update", resumeListener);
+            if (wrapper) {
+              wrapper.setAttribute("data-spotify-type", customItem.type || "track");
+            }
+            const loadResult = controller.loadUri(customItem.uri, "dark");
+            if (loadResult && typeof loadResult.then === "function") {
+              loadResult.then(() => {
+              }).catch((error) => {
+                console.error("\u274C Error loading custom URI:", error);
+              });
+            }
+            setTimeout(() => {
+              const iframe = wrapper.querySelector("iframe");
+              if (iframe) {
+                configureIframeAttributes(iframe);
+              }
+            }, 100);
+            setTimeout(() => {
+              hasResumed = true;
+            }, 2e3);
+            const labelCheckListener = ({ data }) => {
+              if (data && data.track && customItem.type === "track") {
+                if (data.track.artist) {
+                  hasGotArtistFromPlayback = true;
+                  customItem.artist = data.track.artist;
+                  const option = trackSelect == null ? void 0 : trackSelect.querySelector(`option[value="${customItem.id}"]`);
+                  if (option) {
+                    option.textContent = `${customItem.title} by ${data.track.artist}`;
+                    option.dataset.title = customItem.title;
+                    option.dataset.artist = data.track.artist;
+                  }
+                  addToDropdown(customItem);
+                  controller.removeListener("playback_update", labelCheckListener);
+                } else {
+                  setTimeout(() => maybePromptForArtist(), 1e3);
+                }
+              }
+            };
+            controller.addListener("playback_update", labelCheckListener);
+            if (customItem.type === "track") {
+              setTimeout(() => maybePromptForArtist(), 2e3);
+            }
+          }
+          if (trackSelect) {
+            trackSelect.value = customItem.id;
+          }
+          showTemp();
+        };
+        if (urlInput && urlSubmitBtn) {
+          urlSubmitBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const url = urlInput.value.trim();
+            if (url) {
+              await handleCustomUrl(url);
+              urlInput.value = "";
+            }
+          });
+          urlInput.addEventListener("keypress", async (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const url = urlInput.value.trim();
+              if (url) {
+                await handleCustomUrl(url);
+                urlInput.value = "";
+              }
+            }
+          });
+        }
         if (playPauseBtn) {
           playPauseBtn.addEventListener("click", async () => {
-            if (!controller) return;
+            if (!controller || !isReady) return;
             try {
-              if (isPlaying) {
-                if (controller.pause) {
+              if (typeof controller.togglePlay === "function") {
+                const toggleResult = controller.togglePlay();
+                if (toggleResult && typeof toggleResult.then === "function") {
+                  await toggleResult;
+                }
+              } else if (typeof controller.pause === "function" && typeof controller.resume === "function") {
+                if (isPlaying) {
                   const pauseResult = controller.pause();
                   if (pauseResult && typeof pauseResult.then === "function") {
                     await pauseResult;
                   }
-                  isPlaying = false;
+                } else {
+                  const resumeResult = controller.resume();
+                  if (resumeResult && typeof resumeResult.then === "function") {
+                    await resumeResult;
+                  }
                 }
-              } else {
-                if (controller.play) {
+              } else if (typeof controller.pause === "function" && typeof controller.play === "function") {
+                if (isPlaying) {
+                  const pauseResult = controller.pause();
+                  if (pauseResult && typeof pauseResult.then === "function") {
+                    await pauseResult;
+                  }
+                } else {
                   const playResult = controller.play();
                   if (playResult && typeof playResult.then === "function") {
                     await playResult;
                   }
-                  isPlaying = true;
                 }
               }
-              updatePlayPauseButton();
             } catch (error) {
               console.error("Error toggling playback:", error);
-            }
-          });
-        }
-        const updateVolumeDisplay = (value) => {
-          if (volumeDisplay) {
-            const safeValue = clamp(Number(value) || 0, 0, 100);
-            volumeDisplay.textContent = `${Math.round(safeValue)}%`;
-          }
-        };
-        if (volumeSlider) {
-          updateVolumeDisplay(volumeSlider.value);
-          volumeSlider.addEventListener("input", (event) => {
-            const value = parseFloat(event.target.value) / 100;
-            updateVolumeDisplay(event.target.value);
-            if (controller == null ? void 0 : controller.setVolume) {
-              controller.setVolume(clamp(value, 0, 1));
             }
           });
         }
@@ -564,12 +972,8 @@ var init_spotify_embed = __esm({
           },
           setTrackById,
           getCurrentTrack: () => currentTrack,
+          getController: () => controller,
           startPlayback,
-          setVolume: (value) => {
-            if (controller == null ? void 0 : controller.setVolume) {
-              controller.setVolume(clamp(value, 0, 1));
-            }
-          },
           showContainer: () => {
             setContainerState(ContainerState.SHOWN);
             cancelAutoHide();
@@ -1211,7 +1615,7 @@ var initThoughtSpawner = ({
   let promptActive = Boolean(thoughtInput2);
   let activeModalChecker = () => false;
   const spawnThought = (text) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a;
     if (document.body.classList.contains("loading")) {
       return;
     }
@@ -1279,7 +1683,7 @@ var initThoughtSpawner = ({
     const keyboardMultiplier = viewportMetrics.isKeyboardVisible ? 0.6 : 0.35;
     const minDistanceFromTextBox = Math.max(screenHeight * keyboardMultiplier, 160);
     const registerAnimation = (el, lineNumber = 0, wordIndex = 0) => {
-      var _a2, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G;
+      var _a2, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F;
       const registerStartTime = performance.now();
       const durationSeconds = animationConfig2.duration.base + Math.random() * animationConfig2.duration.random;
       const lineDelay = lineNumber * (animationConfig2.delay.lineStep || 0.45);
@@ -1294,7 +1698,7 @@ var initThoughtSpawner = ({
       const dy = -totalVerticalTravel * velocity;
       const rotation = (Math.random() - 0.5) * animationConfig2.erratic.rotationMax;
       const scale = 1;
-      const blurStart = (_f2 = (_b2 = (_a2 = animationConfig2.filter) == null ? void 0 : _a2.blur) == null ? void 0 : _b2.start) != null ? _f2 : (_e2 = (_d2 = (_c2 = animationConfig2.filter) == null ? void 0 : _c2.blur) == null ? void 0 : _d2.startMin) != null ? _e2 : 0.5;
+      const blurStart = (_f = (_b = (_a2 = animationConfig2.filter) == null ? void 0 : _a2.blur) == null ? void 0 : _b.start) != null ? _f : (_e = (_d = (_c = animationConfig2.filter) == null ? void 0 : _c.blur) == null ? void 0 : _d.startMin) != null ? _e : 0.5;
       const blurEnd = (_l = (_h = (_g = animationConfig2.filter) == null ? void 0 : _g.blur) == null ? void 0 : _h.end) != null ? _l : (_k = (_j = (_i = animationConfig2.filter) == null ? void 0 : _i.blur) == null ? void 0 : _j.endMin) != null ? _k : 2;
       const hueStart = (_r = (_n = (_m = animationConfig2.filter) == null ? void 0 : _m.hue) == null ? void 0 : _n.start) != null ? _r : (_q = (_p = (_o = animationConfig2.filter) == null ? void 0 : _o.hue) == null ? void 0 : _p.startMin) != null ? _q : 0;
       const hueEnd = (_x = (_t = (_s = animationConfig2.filter) == null ? void 0 : _s.hue) == null ? void 0 : _t.end) != null ? _x : (_w = (_v = (_u = animationConfig2.filter) == null ? void 0 : _u.hue) == null ? void 0 : _v.endMin) != null ? _w : 0;
@@ -1318,12 +1722,6 @@ var initThoughtSpawner = ({
         hueEnd,
         registerTime: registerStartTime
       };
-      if (window.__thoughtsDebug) {
-        el.dataset.debugWordIndex = wordIndex;
-        el.dataset.debugLineNumber = lineNumber;
-        el.dataset.debugDuration = duration;
-        el.dataset.debugDelay = delay;
-      }
       const durationMs = Math.round(duration);
       const delayMs = Math.round(delay);
       el.style.setProperty("--duration", `${durationMs}ms`);
@@ -1348,32 +1746,9 @@ var initThoughtSpawner = ({
       if (duration <= 0 || delay < 0) {
         console.warn("Animation has invalid timing:", calculatedValues);
       }
-      if (((_G = window.__thoughtsDebug) == null ? void 0 : _G.updateSpawnData) && spawnId) {
-        const computedAfterSet = window.getComputedStyle(el);
-        const verifyProps = {
-          duration: computedAfterSet.getPropertyValue("--duration"),
-          delay: computedAfterSet.getPropertyValue("--delay"),
-          dx: computedAfterSet.getPropertyValue("--dx"),
-          dy: computedAfterSet.getPropertyValue("--dy")
-        };
-        const getSpawnData = window.__thoughtsDebug.getSpawnData || (() => null);
-        const existing = getSpawnData(spawnId);
-        const registrations = (existing == null ? void 0 : existing.animationRegistrations) || [];
-        registrations.push({
-          wordIndex,
-          lineNumber,
-          calculated: calculatedValues,
-          cssPropsAfterSet: verifyProps,
-          timestamp: performance.now()
-        });
-        window.__thoughtsDebug.updateSpawnData(spawnId, {
-          animationRegistrations: registrations
-        });
-      }
     };
     let wordIndexCounter = 0;
     const appendWord = (word, lineNumber) => {
-      var _a2, _b2, _c2, _d2;
       if (!word.length) {
         return;
       }
@@ -1383,20 +1758,6 @@ var initThoughtSpawner = ({
       span.textContent = word;
       registerAnimation(span, lineNumber, wordIndex);
       wordsWrapper.appendChild(span);
-      if (((_a2 = window.__thoughtsDebug) == null ? void 0 : _a2.updateSpawnData) && spawnId) {
-        window.__thoughtsDebug.updateSpawnData(spawnId, {
-          wordAdditions: [
-            ...((_d2 = (_c2 = (_b2 = window.__thoughtsDebug).getSpawnData) == null ? void 0 : _c2.call(_b2, spawnId)) == null ? void 0 : _d2.wordAdditions) || [],
-            {
-              wordIndex,
-              lineNumber,
-              word,
-              timestamp: performance.now(),
-              inDOM: span.parentNode !== null
-            }
-          ]
-        });
-      }
     };
     const appendSpace = (spaceStr, lineNumber) => {
       if (!spaceStr.length) {
@@ -1443,34 +1804,7 @@ var initThoughtSpawner = ({
       appendWord(text, currentLineNumber);
     }
     if (!thoughtLayer2) {
-      if ((_b = window.__thoughtsDebug) == null ? void 0 : _b.setSpawnData) {
-        window.__thoughtsDebug.setSpawnData({
-          id: spawnId,
-          timestamp: Date.now(),
-          originLeft,
-          originTop,
-          width: boxRect.width,
-          travelHeight,
-          fadeBuffer,
-          layoutHeight,
-          keyboardVisible: viewportMetrics.isKeyboardVisible,
-          minDistance: minDistanceFromTextBox,
-          textLength: text.length,
-          textPreview: text.length > 20 ? text.substring(0, 20) + "..." : text,
-          error: "thoughtLayer is null"
-        });
-      }
-      return;
-    }
-    if (!thoughtLayer2) {
       console.error("Thought spawner: thoughtLayer is null, cannot append thought");
-      if ((_c = window.__thoughtsDebug) == null ? void 0 : _c.setSpawnData) {
-        window.__thoughtsDebug.setSpawnData({
-          id: spawnId,
-          timestamp: Date.now(),
-          error: "thoughtLayer is null"
-        });
-      }
       return;
     }
     thoughtLayer2.appendChild(thought);
@@ -1489,96 +1823,29 @@ var initThoughtSpawner = ({
       const overflow = thoughtBottomInViewport - viewportHeightAfterAppend;
       const newTop = Math.max(0, finalOriginTop - overflow - 10);
       thought.style.top = `${newTop}px`;
-      if ((_d = window.__thoughtsDebug) == null ? void 0 : _d.updateSpawnData) {
-        window.__thoughtsDebug.updateSpawnData(spawnId, {
-          adjustedForOverflow: true,
-          originalTop: finalOriginTop,
-          adjustedTop: newTop,
-          overflow
-        });
-      }
-    }
-    if ((_e = window.__thoughtsDebug) == null ? void 0 : _e.setSpawnData) {
-      const computed2 = window.getComputedStyle(thought);
-      const thoughtRectForDebug = thought.getBoundingClientRect();
-      window.__thoughtsDebug.setSpawnData({
-        id: spawnId,
-        timestamp: Date.now(),
-        originLeft,
-        originTop: finalOriginTop,
-        originTopBeforeAdjust,
-        width: boxRect.width,
-        travelHeight,
-        fadeBuffer,
-        layoutHeight,
-        keyboardVisible: viewportMetrics.isKeyboardVisible,
-        minDistance: minDistanceFromTextBox,
-        textLength: text.length,
-        textPreview: text.length > 20 ? text.substring(0, 20) + "..." : text,
-        textareaRect: {
-          top: boxRect.top,
-          left: boxRect.left,
-          width: boxRect.width,
-          height: boxRect.height
-        },
-        viewportRect: {
-          width: viewportMetrics.visualWidth || viewportMetrics.width || window.innerWidth || 0,
-          height: viewportMetrics.visualHeight || viewportMetrics.height || window.innerHeight || 0
-        },
-        zIndex: computed2.zIndex || "auto",
-        wordCount: 0,
-        inDOMAfterAppend: isInDOM,
-        thoughtRectAfterAppend: {
-          top: thoughtRectForDebug.top,
-          left: thoughtRectForDebug.left,
-          bottom: thoughtRectForDebug.bottom,
-          right: thoughtRectForDebug.right,
-          width: thoughtRectForDebug.width,
-          height: thoughtRectForDebug.height
-        }
-      });
-      window.setTimeout(() => {
-        var _a2, _b2;
-        if ((_a2 = window.__thoughtsDebug) == null ? void 0 : _a2.refresh) {
-          window.__thoughtsDebug.refresh();
-        }
-        const stillInDOM = thought.parentNode === thoughtLayer2;
-        if (!stillInDOM && isInDOM) {
-          console.warn("Thought was removed from DOM between append and first check", spawnId);
-          if ((_b2 = window.__thoughtsDebug) == null ? void 0 : _b2.updateSpawnData) {
-            window.__thoughtsDebug.updateSpawnData(spawnId, {
-              removedBeforeFirstCheck: true
-            });
-          }
-        }
-      }, 50);
     }
     const wordElements = thought.querySelectorAll(".thought-word, .thought-space");
     let completedAnimations = 0;
     const totalAnimations = wordElements.length;
-    if (((_f = window.__thoughtsDebug) == null ? void 0 : _f.updateSpawnData) && spawnId) {
-      window.__thoughtsDebug.updateSpawnData(spawnId, {
-        wordCount: totalAnimations
-      });
-    }
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         wordElements.forEach((el) => {
-          const expectedDuration = el.dataset.debugDuration;
-          const expectedDelay = el.dataset.debugDelay;
-          if (expectedDuration && expectedDelay) {
-            const durationMs = Math.round(parseFloat(expectedDuration));
-            const delayMs = Math.round(parseFloat(expectedDelay));
+          const computed2 = window.getComputedStyle(el);
+          const durationValue = computed2.getPropertyValue("--duration");
+          const delayValue = computed2.getPropertyValue("--delay");
+          if (durationValue && delayValue) {
+            const durationMs = Math.round(parseFloat(durationValue));
+            const delayMs = Math.round(parseFloat(delayValue));
             void el.offsetHeight;
             el.style.setProperty("animation-duration", `${durationMs}ms`, "important");
             el.style.setProperty("animation-delay", `${delayMs}ms`, "important");
             el.style.setProperty("animation", `wordLift ${durationMs}ms ease-out ${delayMs}ms forwards`, "important");
             void el.offsetHeight;
-            const computed2 = window.getComputedStyle(el);
-            if (computed2.animationDuration === "0.001s" || computed2.animationDuration === "0s") {
+            const computed3 = window.getComputedStyle(el);
+            if (computed3.animationDuration === "0.001s" || computed3.animationDuration === "0s") {
               console.warn("Animation duration not applied correctly, retrying...", {
                 expected: `${durationMs}ms`,
-                got: computed2.animationDuration,
+                got: computed3.animationDuration,
                 element: el
               });
               el.style.animationDuration = `${durationMs}ms`;
@@ -1591,211 +1858,31 @@ var initThoughtSpawner = ({
     });
     const animationEndEvents = [];
     const handleAnimationEnd = (event) => {
-      var _a2, _b2, _c2, _d2, _e2;
       const endTime = performance.now();
       const target = (event == null ? void 0 : event.target) || (event == null ? void 0 : event.currentTarget);
-      const wordIndex = (_a2 = target == null ? void 0 : target.dataset) == null ? void 0 : _a2.debugWordIndex;
-      const lineNumber = (_b2 = target == null ? void 0 : target.dataset) == null ? void 0 : _b2.debugLineNumber;
-      const expectedDuration = (_c2 = target == null ? void 0 : target.dataset) == null ? void 0 : _c2.debugDuration;
-      const expectedDelay = (_d2 = target == null ? void 0 : target.dataset) == null ? void 0 : _d2.debugDelay;
       completedAnimations += 1;
-      if (((_e2 = window.__thoughtsDebug) == null ? void 0 : _e2.updateSpawnData) && spawnId) {
-        const computedAtEnd = target ? window.getComputedStyle(target) : null;
-        const animationsAtEnd = (target == null ? void 0 : target.getAnimations) ? target.getAnimations() : [];
-        animationEndEvents.push({
-          wordIndex: wordIndex ? parseInt(wordIndex) : null,
-          lineNumber: lineNumber ? parseInt(lineNumber) : null,
-          timestamp: endTime,
-          completedAnimations,
-          totalAnimations,
-          expectedDuration: expectedDuration ? parseFloat(expectedDuration) : null,
-          expectedDelay: expectedDelay ? parseFloat(expectedDelay) : null,
-          computedStyle: computedAtEnd ? {
-            animationName: computedAtEnd.animationName,
-            animationDuration: computedAtEnd.animationDuration,
-            animationDelay: computedAtEnd.animationDelay,
-            animationPlayState: computedAtEnd.animationPlayState,
-            opacity: computedAtEnd.opacity,
-            transform: computedAtEnd.transform
-          } : null,
-          animations: animationsAtEnd.map((a) => {
-            var _a3, _b3, _c3, _d3, _e3, _f2;
-            return {
-              name: a.animationName,
-              playState: a.playState,
-              currentTime: a.currentTime,
-              duration: (_c3 = (_b3 = (_a3 = a.effect) == null ? void 0 : _a3.timing) == null ? void 0 : _b3.duration) != null ? _c3 : null,
-              delay: (_f2 = (_e3 = (_d3 = a.effect) == null ? void 0 : _d3.timing) == null ? void 0 : _e3.delay) != null ? _f2 : null
-            };
-          })
-        });
-        window.__thoughtsDebug.updateSpawnData(spawnId, {
-          animationEndEvents: [...animationEndEvents]
-        });
-      }
       if (completedAnimations >= totalAnimations) {
         window.setTimeout(() => {
-          var _a3;
           if (thought.parentNode) {
-            const spawnId2 = thought.getAttribute("data-spawn-id");
-            if (spawnId2 && ((_a3 = window.__thoughtsDebug) == null ? void 0 : _a3.setRemovalReason)) {
-              window.__thoughtsDebug.setRemovalReason(spawnId2, {
-                reason: "all animations completed",
-                completedAnimations,
-                totalAnimations,
-                timestamp: Date.now(),
-                source: "handleAnimationEnd",
-                allEndEvents: animationEndEvents
-              });
-            }
             thought.remove();
           }
         }, 100);
       }
     };
-    wordElements.forEach((el, index) => {
-      var _a2, _b2;
-      const wordIndex = el.dataset.debugWordIndex;
-      const lineNumber = el.dataset.debugLineNumber;
-      const expectedDuration = el.dataset.debugDuration;
-      const expectedDelay = el.dataset.debugDelay;
-      const durationMs = expectedDuration ? Math.round(parseFloat(expectedDuration)) : 5400;
-      const delayMs = expectedDelay ? Math.round(parseFloat(expectedDelay)) : 0;
+    wordElements.forEach((el) => {
+      const computed2 = window.getComputedStyle(el);
+      const durationValue = computed2.getPropertyValue("--duration");
+      const delayValue = computed2.getPropertyValue("--delay");
+      const durationMs = durationValue ? Math.round(parseFloat(durationValue)) : 5400;
+      const delayMs = delayValue ? Math.round(parseFloat(delayValue)) : 0;
       void el.offsetHeight;
       el.style.animation = `wordLift ${durationMs}ms ease-out ${delayMs}ms forwards`;
       el.style.animationDuration = `${durationMs}ms`;
       el.style.animationDelay = `${delayMs}ms`;
-      if (((_a2 = window.__thoughtsDebug) == null ? void 0 : _a2.updateSpawnData) && spawnId) {
-        const computedBeforeListen = window.getComputedStyle(el);
-        const animationsBeforeListen = el.getAnimations ? el.getAnimations() : [];
-        const getSpawnData = window.__thoughtsDebug.getSpawnData || (() => null);
-        const existing = getSpawnData(spawnId);
-        window.__thoughtsDebug.updateSpawnData(spawnId, {
-          animationListeners: [
-            ...(existing == null ? void 0 : existing.animationListeners) || [],
-            {
-              wordIndex: wordIndex ? parseInt(wordIndex) : index,
-              lineNumber: lineNumber ? parseInt(lineNumber) : null,
-              expectedDuration: expectedDuration ? parseFloat(expectedDuration) : null,
-              expectedDelay: expectedDelay ? parseFloat(expectedDelay) : null,
-              timestamp: performance.now(),
-              appliedDuration: durationMs,
-              appliedDelay: delayMs,
-              computedBeforeListen: {
-                animationName: computedBeforeListen.animationName,
-                animationDuration: computedBeforeListen.animationDuration,
-                animationDelay: computedBeforeListen.animationDelay,
-                animationPlayState: computedBeforeListen.animationPlayState,
-                cssVars: {
-                  duration: computedBeforeListen.getPropertyValue("--duration"),
-                  delay: computedBeforeListen.getPropertyValue("--delay"),
-                  dx: computedBeforeListen.getPropertyValue("--dx"),
-                  dy: computedBeforeListen.getPropertyValue("--dy")
-                }
-              },
-              animationsBeforeListen: animationsBeforeListen.map((a) => ({
-                name: a.animationName,
-                playState: a.playState,
-                currentTime: a.currentTime
-              }))
-            }
-          ]
-        });
-      }
       el.addEventListener("animationend", handleAnimationEnd, { once: true });
-      el.addEventListener("animationstart", (event) => {
-        var _a3, _b3;
-        if (((_a3 = window.__thoughtsDebug) == null ? void 0 : _a3.updateSpawnData) && spawnId) {
-          const getSpawnData = window.__thoughtsDebug.getSpawnData || (() => null);
-          const existing = getSpawnData(spawnId);
-          window.__thoughtsDebug.updateSpawnData(spawnId, {
-            animationStartEvents: [
-              ...(existing == null ? void 0 : existing.animationStartEvents) || [],
-              {
-                wordIndex: wordIndex ? parseInt(wordIndex) : index,
-                timestamp: performance.now(),
-                target: (_b3 = event.target) == null ? void 0 : _b3.className
-              }
-            ]
-          });
-        }
-      }, { once: true });
-      if (((_b2 = window.__thoughtsDebug) == null ? void 0 : _b2.updateSpawnData) && spawnId) {
-        const checkAnimation = () => {
-          if (!thought.parentNode) {
-            return;
-          }
-          const animations = el.getAnimations ? el.getAnimations() : [];
-          const computedStyle = window.getComputedStyle(el);
-          const animationName = computedStyle.animationName;
-          const animationPlayState = computedStyle.animationPlayState;
-          const animationDuration = computedStyle.animationDuration;
-          const animationDelay = computedStyle.animationDelay;
-          const duration = computedStyle.getPropertyValue("--duration");
-          const delay = computedStyle.getPropertyValue("--delay");
-          const dx = computedStyle.getPropertyValue("--dx");
-          const dy = computedStyle.getPropertyValue("--dy");
-          const checkData = {
-            hasAnimations: animations.length > 0,
-            animationCount: animations.length,
-            animationName: animationName !== "none" ? animationName : null,
-            animationPlayState,
-            animationDuration,
-            animationDelay,
-            animationRunning: animations.some((a) => a.playState === "running"),
-            cssVars: {
-              duration,
-              delay,
-              dx,
-              dy
-            },
-            animationDetails: animations.map((a) => {
-              var _a3, _b3, _c2, _d2, _e2, _f2;
-              try {
-                return {
-                  name: a.animationName,
-                  duration: (_c2 = (_b3 = (_a3 = a.effect) == null ? void 0 : _a3.timing) == null ? void 0 : _b3.duration) != null ? _c2 : null,
-                  delay: (_f2 = (_e2 = (_d2 = a.effect) == null ? void 0 : _d2.timing) == null ? void 0 : _e2.delay) != null ? _f2 : null,
-                  playState: a.playState,
-                  currentTime: a.currentTime
-                };
-              } catch (e) {
-                return {
-                  name: a.animationName || "unknown",
-                  error: e.message,
-                  playState: a.playState
-                };
-              }
-            })
-          };
-          window.__thoughtsDebug.updateSpawnData(spawnId, {
-            animationCheck: checkData
-          });
-        };
-        checkAnimation();
-        window.setTimeout(checkAnimation, 50);
-        window.setTimeout(checkAnimation, 200);
-      }
     });
     const checkAndRemove = () => {
-      var _a2, _b2, _c2, _d2, _e2, _f2, _g;
       if (!thought.parentNode) {
-        const spawnId2 = thought.getAttribute("data-spawn-id");
-        if (spawnId2 && ((_a2 = window.__thoughtsDebug) == null ? void 0 : _a2.setRemovalReason)) {
-          const existingReason = (_c2 = (_b2 = window.__thoughtsDebug).getRemovalReason) == null ? void 0 : _c2.call(_b2, spawnId2);
-          if (!existingReason) {
-            window.__thoughtsDebug.setRemovalReason(spawnId2, {
-              reason: "removed by external code (parentNode is null)",
-              timestamp: Date.now()
-            });
-          }
-        }
-        return;
-      }
-      if (typeof window !== "undefined" && window.__thoughtsDebugCleanupDisabled) {
-        window.requestAnimationFrame(() => {
-          window.setTimeout(checkAndRemove, 200);
-        });
         return;
       }
       const thoughtRect2 = thought.getBoundingClientRect();
@@ -1814,47 +1901,6 @@ var initThoughtSpawner = ({
       const elapsed = Date.now() - spawnTime;
       const shouldBeComplete = maxLifetime > 0 && elapsed > maxLifetime + 1e3;
       if (isOffScreen || shouldBeComplete) {
-        const spawnId2 = thought.getAttribute("data-spawn-id");
-        if (spawnId2 && ((_d2 = window.__thoughtsDebug) == null ? void 0 : _d2.setRemovalReason)) {
-          const reason = isOffScreen ? `off-screen: ${isOffScreenTop ? "top" : ""}${isOffScreenBottom ? "bottom" : ""}${isOffScreenLeft ? "left" : ""}${isOffScreenRight ? "right" : ""}` : "lifetime expired";
-          window.__thoughtsDebug.setRemovalReason(spawnId2, {
-            reason,
-            elapsed,
-            maxLifetime,
-            rect: {
-              top: thoughtRect2.top,
-              bottom: thoughtRect2.bottom,
-              left: thoughtRect2.left,
-              right: thoughtRect2.right
-            },
-            screenHeight: screenHeight2,
-            screenWidth,
-            viewportBounds: {
-              visualHeight: viewportBounds.visualHeight,
-              layoutHeight: viewportBounds.layoutHeight,
-              isKeyboardVisible: viewportBounds.isKeyboardVisible
-            },
-            checks: {
-              isOffScreenTop,
-              isOffScreenBottom,
-              isOffScreenLeft,
-              isOffScreenRight
-            }
-          });
-        }
-        const spawnIdForCleanup = thought.getAttribute("data-spawn-id");
-        if (spawnIdForCleanup && ((_e2 = window.__thoughtsDebug) == null ? void 0 : _e2.setRemovalReason)) {
-          const existing = (_g = (_f2 = window.__thoughtsDebug).getRemovalReason) == null ? void 0 : _g.call(_f2, spawnIdForCleanup);
-          if (!existing) {
-            window.__thoughtsDebug.setRemovalReason(spawnIdForCleanup, {
-              reason: isOffScreen ? `off-screen: ${isOffScreenTop ? "top" : ""}${isOffScreenBottom ? "bottom" : ""}${isOffScreenLeft ? "left" : ""}${isOffScreenRight ? "right" : ""}` : "lifetime expired",
-              elapsed,
-              maxLifetime,
-              source: "checkAndRemove",
-              timestamp: Date.now()
-            });
-          }
-        }
         thought.remove();
         return;
       }
@@ -2161,199 +2207,10 @@ var initNavigationToggle = ({
 
 // assets/js/modules/viewport.js
 init_utils();
-var DEBUG_ENABLED = (() => {
-  if (typeof window === "undefined") {
-    return false;
-  }
-  const params = new URLSearchParams(window.location.search || "");
-  if (params.has("debug")) {
-    localStorage.setItem("thoughts-debug", params.get("debug") !== "0" ? "true" : "false");
-  }
-  const stored = localStorage.getItem("thoughts-debug");
-  return stored === "true" || params.get("debug") === "true";
-})();
-var debugState = {
-  metrics: null,
-  lastSpawn: null,
-  spawnHistory: [],
-  thoughtCount: 0,
-  overlay: null,
-  removalReasons: /* @__PURE__ */ new Map()
-};
-var ensureDebugOverlay = () => {
-  var _a;
-  if (!DEBUG_ENABLED || typeof document === "undefined") {
-    return null;
-  }
-  if (debugState.overlay) {
-    return debugState.overlay;
-  }
-  const overlay = document.createElement("aside");
-  overlay.id = "thoughts-debug-overlay";
-  overlay.style.position = "fixed";
-  overlay.style.zIndex = "999";
-  overlay.style.top = "0.5rem";
-  overlay.style.left = "0.5rem";
-  overlay.style.padding = "0.75rem 1rem";
-  overlay.style.borderRadius = "0.75rem";
-  overlay.style.background = "rgba(12, 16, 35, 0.82)";
-  overlay.style.color = "#dfe4ff";
-  overlay.style.fontSize = "0.75rem";
-  overlay.style.lineHeight = "1.25";
-  overlay.style.maxWidth = "18rem";
-  overlay.style.pointerEvents = "none";
-  overlay.style.backdropFilter = "blur(12px)";
-  overlay.style.whiteSpace = "pre-wrap";
-  overlay.style.fontFamily = "monospace";
-  (_a = document.body) == null ? void 0 : _a.appendChild(overlay);
-  debugState.overlay = overlay;
-  return overlay;
-};
-var renderDebugOverlay = () => {
-  if (!DEBUG_ENABLED) {
-    return;
-  }
-  const overlay = ensureDebugOverlay();
-  if (!overlay) {
-    return;
-  }
-  const metrics = debugState.metrics;
-  if (!metrics) {
-    overlay.textContent = "(no metrics yet)";
-    return;
-  }
-  const lines = [
-    `viewport: ${Math.round(metrics.visualWidth || metrics.width || 0)} x ${Math.round(
-      metrics.visualHeight || metrics.height || 0
-    )}`,
-    `layout:   ${Math.round(metrics.layoutWidth || 0)} x ${Math.round(metrics.layoutHeight || 0)}`,
-    `offsets:  top ${Math.round(metrics.offsetTop || 0)} | bottom ${Math.round(
-      metrics.keyboardOffset || metrics.offsetBottom || 0
-    )}`,
-    `keyboard: ${metrics.isKeyboardVisible ? "visible" : "hidden"}`
-  ];
-  if (debugState.lastSpawn) {
-    const spawn = debugState.lastSpawn;
-    const thoughtEl = typeof document !== "undefined" ? document.querySelector(`#thought-layer .thought[data-spawn-id="${spawn.id}"]`) : null;
-    const thoughtExists = thoughtEl !== null;
-    const thoughtVisible = thoughtEl ? thoughtEl.getBoundingClientRect().height > 0 : false;
-    const thoughtRect = thoughtEl ? thoughtEl.getBoundingClientRect() : null;
-    lines.push(
-      "--- last thought ---",
-      `created: ${spawn.timestamp ? new Date(spawn.timestamp).toLocaleTimeString() : "unknown"}`,
-      `total: ${debugState.thoughtCount}`,
-      `words: ${spawn.wordCount || 0}`,
-      `origin: (${Math.round(spawn.originLeft || 0)}, ${Math.round(spawn.originTop)})`
-    );
-    if (spawn.originTopBeforeAdjust !== void 0 && spawn.originTopBeforeAdjust !== spawn.originTop) {
-      lines.push(`origin (raw): ${Math.round(spawn.originTopBeforeAdjust)}`);
-    }
-    lines.push(
-      `width: ${Math.round(spawn.width)}`,
-      `z-index: ${spawn.zIndex || "auto"}`,
-      `in DOM: ${thoughtExists ? "yes" : "no"}`,
-      `visible: ${thoughtVisible ? "yes" : "no"}`
-    );
-    if (spawn.error) {
-      lines.push(`ERROR: ${spawn.error}`);
-    }
-    const removalReason = debugState.removalReasons.get(spawn.id);
-    if (removalReason) {
-      const lifetime = removalReason.elapsed ? `${(removalReason.elapsed / 1e3).toFixed(2)}s` : "?";
-      const maxLifetime = removalReason.maxLifetime ? `${(removalReason.maxLifetime / 1e3).toFixed(2)}s` : "?";
-      lines.push(`REMOVED: ${removalReason.reason}`);
-      lines.push(`  lifetime: ${lifetime} / ${maxLifetime}`);
-      if (removalReason.rect) {
-        lines.push(
-          `  at: (${Math.round(removalReason.rect.left)}, ${Math.round(removalReason.rect.top)})`,
-          `  screen: ${Math.round(removalReason.screenHeight)}h x ${Math.round(removalReason.screenWidth)}w`
-        );
-      }
-    }
-    const thoughtLayerExists = typeof document !== "undefined" ? document.getElementById("thought-layer") !== null : false;
-    if (!thoughtLayerExists) {
-      lines.push("WARNING: #thought-layer missing!");
-    }
-    if (spawn.textareaRect) {
-      lines.push(
-        `textarea: (${Math.round(spawn.textareaRect.left)}, ${Math.round(spawn.textareaRect.top)})`
-      );
-    }
-    if (thoughtRect) {
-      const computedStyle = thoughtEl ? window.getComputedStyle(thoughtEl) : null;
-      const styleTop = thoughtEl ? thoughtEl.style.top : "?";
-      const transform = (computedStyle == null ? void 0 : computedStyle.transform) || "none";
-      lines.push(
-        `DOM pos: (${Math.round(thoughtRect.left)}, ${Math.round(thoughtRect.top)})`,
-        `style.top: ${styleTop}`,
-        `transform: ${transform !== "none" ? transform.substring(0, 30) + "..." : "none"}`,
-        `size: ${Math.round(thoughtRect.width)} x ${Math.round(thoughtRect.height)}`
-      );
-      if (thoughtEl) {
-        const wordEl = thoughtEl.querySelector(".thought-word");
-        if (wordEl) {
-          const wordStyle = window.getComputedStyle(wordEl);
-          const wordDuration = wordStyle.getPropertyValue("--duration") || wordStyle.animationDuration || "?";
-          const wordDelay = wordStyle.getPropertyValue("--delay") || wordStyle.animationDelay || "?";
-          const wordDy = wordStyle.getPropertyValue("--dy") || "?";
-          const animationName = wordStyle.animationName || "none";
-          const wordOpacity = wordStyle.opacity || "?";
-          const wordColor = wordStyle.color || "?";
-          const wordTransform = wordStyle.transform || "none";
-          const wordRect = wordEl.getBoundingClientRect();
-          const animationState = wordEl.style.animationPlayState || wordStyle.animationPlayState || "?";
-          const animationRunning = wordEl.getAnimations ? wordEl.getAnimations().length > 0 : "?";
-          lines.push(
-            `word anim: ${animationName}`,
-            `duration: ${wordDuration}, delay: ${wordDelay}`,
-            `dy: ${wordDy}`,
-            `word pos: (${Math.round(wordRect.left)}, ${Math.round(wordRect.top)})`,
-            `word size: ${Math.round(wordRect.width)}x${Math.round(wordRect.height)}`,
-            `opacity: ${wordOpacity}, color: ${wordColor.substring(0, 15)}`,
-            `transform: ${wordTransform !== "none" ? wordTransform.substring(0, 40) + "..." : "none"}`,
-            `anim running: ${animationRunning}`
-          );
-        } else {
-          lines.push("WARNING: no .thought-word found!");
-        }
-      }
-    } else if (thoughtExists) {
-      lines.push("position: (no rect available)");
-    }
-    if (spawn.sceneRect) {
-      lines.push(`scene top: ${Math.round(spawn.sceneRect.top)}`);
-    }
-    lines.push(
-      `travel: ${Math.round(spawn.travelHeight)} + ${Math.round(spawn.fadeBuffer)}`,
-      `minDist: ${Math.round(spawn.minDistance)}`,
-      `text: "${spawn.textPreview || ""}" (${spawn.textLength} chars)`
-    );
-  } else {
-    lines.push("--- no thoughts yet ---");
-  }
-  const activeThoughts = typeof document !== "undefined" ? document.querySelectorAll("#thought-layer .thought").length : 0;
-  if (activeThoughts > 0) {
-    lines.push(`active thoughts: ${activeThoughts}`);
-  }
-  overlay.textContent = lines.join("\n");
-  const offsetTop = metrics.offsetTop || 0;
-  const offsetBottom = metrics.keyboardOffset || metrics.offsetBottom || 0;
-  const visualHeight = metrics.visualHeight || metrics.height || window.innerHeight || 0;
-  overlay.style.top = `${8 + offsetTop}px`;
-  overlay.style.bottom = "auto";
-  const rect = overlay.getBoundingClientRect();
-  const availableBottom = visualHeight - offsetBottom - 8;
-  if (rect.bottom > availableBottom) {
-    overlay.style.top = "auto";
-    overlay.style.bottom = `${8 + offsetBottom}px`;
-  }
-};
 var setViewportProperties = () => {
   const metrics = getViewportMetrics();
   const root = document.documentElement;
   if (!root || !root.style) {
-    debugState.metrics = metrics;
-    renderDebugOverlay();
     return metrics;
   }
   const visualHeight = metrics.visualHeight || metrics.height || window.innerHeight || 0;
@@ -2374,8 +2231,6 @@ var setViewportProperties = () => {
   const textareaMaxHeight = 100;
   const clampedTextareaHeight = Math.max(textareaMinHeight, Math.min(textareaMaxHeight, textareaHeight));
   root.style.setProperty("--textarea-height", `${clampedTextareaHeight}px`);
-  debugState.metrics = metrics;
-  renderDebugOverlay();
   return metrics;
 };
 var initViewportUnits = () => {
@@ -2422,516 +2277,6 @@ var initViewportUnits = () => {
     }
   };
 };
-if (typeof window !== "undefined") {
-  if (!window.__thoughtsDebug) {
-    window.__thoughtsDebug = {};
-  }
-  window.__thoughtsDebug.getViewportMetrics = () => ({ ...debugState.metrics });
-  window.__thoughtsDebug.setSpawnData = (data) => {
-    if (!debugState.lastSpawn || debugState.lastSpawn.id !== data.id) {
-      debugState.thoughtCount += 1;
-    }
-    debugState.lastSpawn = data;
-    const existingIndex = debugState.spawnHistory.findIndex((s) => s.id === data.id);
-    if (existingIndex >= 0) {
-      debugState.spawnHistory[existingIndex] = { ...debugState.spawnHistory[existingIndex], ...data };
-    } else {
-      debugState.spawnHistory.push({ ...data, count: debugState.thoughtCount });
-      if (debugState.spawnHistory.length > 10) {
-        debugState.spawnHistory.shift();
-      }
-    }
-    renderDebugOverlay();
-  };
-  window.__thoughtsDebug.updateSpawnData = (id, updates) => {
-    if (debugState.lastSpawn && debugState.lastSpawn.id === id) {
-      Object.assign(debugState.lastSpawn, updates);
-    }
-    const existing = debugState.spawnHistory.find((s) => s.id === id);
-    if (existing) {
-      Object.assign(existing, updates);
-    }
-    renderDebugOverlay();
-  };
-  window.__thoughtsDebug.setRemovalReason = (id, reason) => {
-    debugState.removalReasons.set(id, reason);
-    if (debugState.lastSpawn && debugState.lastSpawn.id === id) {
-      renderDebugOverlay();
-    }
-  };
-  window.__thoughtsDebug.getRemovalReason = (id) => {
-    return debugState.removalReasons.get(id) || null;
-  };
-  window.__thoughtsDebug.getSpawnData = (id) => {
-    if (id) {
-      return debugState.spawnHistory.find((s) => s.id === id) || (debugState.lastSpawn && debugState.lastSpawn.id === id ? debugState.lastSpawn : null);
-    }
-    return debugState.lastSpawn;
-  };
-  window.__thoughtsDebug.refresh = () => {
-    renderDebugOverlay();
-  };
-  if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") {
-    const thoughtLayer2 = document.getElementById("thought-layer");
-    if (thoughtLayer2) {
-      const removalObserver = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          mutation.removedNodes.forEach((node) => {
-            if (node.nodeType === 1 && node.classList && node.classList.contains("thought")) {
-              const spawnId = node.getAttribute("data-spawn-id");
-              if (spawnId) {
-                const existingReason = debugState.removalReasons.get(spawnId);
-                if (!existingReason) {
-                  debugState.removalReasons.set(spawnId, {
-                    reason: "removed by MutationObserver (unknown cause)",
-                    timestamp: Date.now(),
-                    stack: new Error().stack
-                  });
-                  if (debugState.lastSpawn && debugState.lastSpawn.id === spawnId) {
-                    renderDebugOverlay();
-                  }
-                }
-              }
-            }
-          });
-        });
-      });
-      removalObserver.observe(thoughtLayer2, { childList: true });
-      if (DEBUG_ENABLED) {
-        console.log("Thought removal observer active");
-      }
-    }
-  }
-  try {
-    window.__thoughtsDebug.listActiveThoughts = function() {
-      const inDOM = typeof document !== "undefined" ? Array.from(document.querySelectorAll("#thought-layer .thought")).map((el) => ({
-        id: el.getAttribute("data-spawn-id"),
-        inDOM: true,
-        rect: el.getBoundingClientRect()
-      })) : [];
-      const inHistory = debugState.spawnHistory.map((s) => ({
-        id: s.id,
-        inDOM: false,
-        timestamp: s.timestamp
-      }));
-      return {
-        inDOM,
-        inHistory,
-        lastSpawn: debugState.lastSpawn ? { id: debugState.lastSpawn.id, timestamp: debugState.lastSpawn.timestamp } : null,
-        totalInDOM: inDOM.length,
-        totalInHistory: inHistory.length
-      };
-    };
-    window.__thoughtsDebug.snapshotThought = function(spawnId) {
-      if (!spawnId && debugState.lastSpawn) {
-        spawnId = debugState.lastSpawn.id;
-      }
-      if (!spawnId) {
-        const active = window.__thoughtsDebug.listActiveThoughts();
-        return {
-          error: "No thought ID provided and no last spawn found",
-          availableThoughts: active
-        };
-      }
-      const thoughtEl = typeof document !== "undefined" ? document.querySelector(`#thought-layer .thought[data-spawn-id="${spawnId}"]`) : null;
-      if (!thoughtEl) {
-        const active = window.__thoughtsDebug.listActiveThoughts();
-        return {
-          error: `Thought with id ${spawnId} not found in DOM`,
-          searchedId: spawnId,
-          availableThoughts: active
-        };
-      }
-      const metrics = getViewportMetrics();
-      const thoughtRect = thoughtEl.getBoundingClientRect();
-      const thoughtStyle = window.getComputedStyle(thoughtEl);
-      const wordEl = thoughtEl.querySelector(".thought-word");
-      const wordRect = wordEl ? wordEl.getBoundingClientRect() : null;
-      const wordStyle = wordEl ? window.getComputedStyle(wordEl) : null;
-      const wordAnimations = wordEl && wordEl.getAnimations ? wordEl.getAnimations() : [];
-      const isOnScreen = {
-        top: thoughtRect.top >= 0,
-        bottom: thoughtRect.bottom <= (metrics.visualHeight || window.innerHeight || 0),
-        left: thoughtRect.left >= 0,
-        right: thoughtRect.right <= (metrics.visualWidth || window.innerWidth || 0),
-        fullyVisible: thoughtRect.top >= 0 && thoughtRect.bottom <= (metrics.visualHeight || window.innerHeight || 0) && thoughtRect.left >= 0 && thoughtRect.right <= (metrics.visualWidth || window.innerWidth || 0)
-      };
-      const snapshot = {
-        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-        spawnId,
-        viewport: {
-          visual: {
-            width: metrics.visualWidth || metrics.width || 0,
-            height: metrics.visualHeight || metrics.height || 0
-          },
-          layout: {
-            width: metrics.layoutWidth || 0,
-            height: metrics.layoutHeight || 0
-          },
-          keyboard: {
-            visible: metrics.isKeyboardVisible,
-            offsetTop: metrics.offsetTop || 0,
-            offsetBottom: metrics.keyboardOffset || metrics.offsetBottom || 0
-          }
-        },
-        thought: {
-          style: {
-            top: thoughtEl.style.top,
-            left: thoughtEl.style.left,
-            width: thoughtEl.style.width
-          },
-          computed: {
-            top: thoughtStyle.top,
-            left: thoughtStyle.left,
-            width: thoughtStyle.width,
-            height: thoughtStyle.height,
-            zIndex: thoughtStyle.zIndex,
-            opacity: thoughtStyle.opacity,
-            transform: thoughtStyle.transform,
-            position: thoughtStyle.position
-          },
-          rect: {
-            top: thoughtRect.top,
-            left: thoughtRect.left,
-            bottom: thoughtRect.bottom,
-            right: thoughtRect.right,
-            width: thoughtRect.width,
-            height: thoughtRect.height
-          },
-          onScreen: isOnScreen
-        },
-        word: wordEl ? {
-          rect: {
-            top: wordRect.top,
-            left: wordRect.left,
-            bottom: wordRect.bottom,
-            right: wordRect.right,
-            width: wordRect.width,
-            height: wordRect.height
-          },
-          style: {
-            opacity: wordStyle.opacity,
-            color: wordStyle.color,
-            transform: wordStyle.transform,
-            animationName: wordStyle.animationName,
-            animationDuration: wordStyle.animationDuration,
-            animationDelay: wordStyle.animationDelay,
-            animationPlayState: wordStyle.animationPlayState
-          },
-          cssVars: {
-            duration: wordStyle.getPropertyValue("--duration"),
-            delay: wordStyle.getPropertyValue("--delay"),
-            dx: wordStyle.getPropertyValue("--dx"),
-            dy: wordStyle.getPropertyValue("--dy"),
-            rotation: wordStyle.getPropertyValue("--rotation"),
-            opacityStart: wordStyle.getPropertyValue("--opacity-start"),
-            opacityEnd: wordStyle.getPropertyValue("--opacity-end")
-          },
-          animations: wordAnimations.map((anim) => ({
-            name: anim.animationName,
-            duration: anim.effect ? anim.effect.timing.duration : null,
-            delay: anim.effect ? anim.effect.timing.delay : null,
-            playbackRate: anim.playbackRate,
-            playState: anim.playState,
-            currentTime: anim.currentTime
-          }))
-        } : null,
-        spawnData: debugState.lastSpawn && debugState.lastSpawn.id === spawnId ? debugState.lastSpawn : null
-      };
-      return snapshot;
-    };
-    window.__thoughtsDebug.snapshotAllThoughts = function() {
-      const thoughts = typeof document !== "undefined" ? document.querySelectorAll("#thought-layer .thought") : [];
-      return Array.from(thoughts).map((el) => {
-        const spawnId = el.getAttribute("data-spawn-id");
-        return window.__thoughtsDebug.snapshotThought(spawnId);
-      });
-    };
-    window.__thoughtsDebug.spawnTestThought = function(options = {}) {
-      const {
-        text = "Test Thought",
-        left = null,
-        // px from left of scene
-        top = null,
-        // px from top of scene
-        width = null
-        // px width
-      } = options;
-      const scene2 = document.getElementById("scene");
-      const thoughtLayer2 = document.getElementById("thought-layer");
-      const thoughtInput2 = document.getElementById("thoughts");
-      if (!scene2 || !thoughtLayer2) {
-        return { error: "Scene or thought layer not found" };
-      }
-      const sceneRect = scene2.getBoundingClientRect();
-      const boxRect = thoughtInput2 ? thoughtInput2.getBoundingClientRect() : null;
-      const computed = thoughtInput2 ? window.getComputedStyle(thoughtInput2) : null;
-      const thought = document.createElement("div");
-      thought.className = "thought";
-      const spawnId = `debug-thought-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      thought.setAttribute("data-spawn-id", spawnId);
-      thought.setAttribute("data-spawn-time", Date.now());
-      const finalLeft = left !== null ? left : boxRect ? boxRect.left - sceneRect.left : 0;
-      const finalTop = top !== null ? top : boxRect ? boxRect.top - sceneRect.top : 100;
-      const finalWidth = width !== null ? width : boxRect ? boxRect.width : 300;
-      thought.style.left = `${finalLeft}px`;
-      thought.style.top = `${finalTop}px`;
-      thought.style.width = `${finalWidth}px`;
-      if (computed) {
-        thought.style.padding = computed.padding;
-        thought.style.font = computed.font;
-        thought.style.lineHeight = computed.lineHeight;
-        thought.style.letterSpacing = computed.letterSpacing;
-      }
-      const wordsWrapper = document.createElement("span");
-      wordsWrapper.className = "thought-words";
-      const wordSpan = document.createElement("span");
-      wordSpan.className = "thought-word";
-      wordSpan.textContent = text;
-      wordsWrapper.appendChild(wordSpan);
-      thought.appendChild(wordsWrapper);
-      thoughtLayer2.appendChild(thought);
-      const rect = thought.getBoundingClientRect();
-      return {
-        success: true,
-        spawnId,
-        position: { left: finalLeft, top: finalTop, width: finalWidth },
-        domRect: {
-          top: rect.top,
-          left: rect.left,
-          bottom: rect.bottom,
-          right: rect.right,
-          width: rect.width,
-          height: rect.height
-        },
-        sceneRect: {
-          top: sceneRect.top,
-          left: sceneRect.left,
-          width: sceneRect.width,
-          height: sceneRect.height
-        }
-      };
-    };
-    window.__thoughtsDebug.spawnTestGrid = function() {
-      const scene2 = document.getElementById("scene");
-      if (!scene2) {
-        return { error: "Scene not found" };
-      }
-      const sceneRect = scene2.getBoundingClientRect();
-      const centerX = sceneRect.width / 2;
-      const centerY = sceneRect.height / 2;
-      const positions = [
-        { text: "Top-Left", left: 20, top: 20 },
-        { text: "Top-Center", left: centerX - 100, top: 20 },
-        { text: "Top-Right", left: sceneRect.width - 220, top: 20 },
-        { text: "Middle-Left", left: 20, top: centerY - 20 },
-        { text: "Center", left: centerX - 100, top: centerY - 20 },
-        { text: "Middle-Right", left: sceneRect.width - 220, top: centerY - 20 },
-        { text: "Bottom-Left", left: 20, top: sceneRect.height - 60 },
-        { text: "Bottom-Center", left: centerX - 100, top: sceneRect.height - 60 },
-        { text: "Bottom-Right", left: sceneRect.width - 220, top: sceneRect.height - 60 }
-      ];
-      const results = positions.map((pos) => {
-        return window.__thoughtsDebug.spawnTestThought(pos);
-      });
-      return {
-        success: true,
-        count: results.length,
-        results
-      };
-    };
-    window.__thoughtsDebug.clearAllThoughts = function() {
-      const thoughtLayer2 = document.getElementById("thought-layer");
-      if (!thoughtLayer2) {
-        return { error: "Thought layer not found" };
-      }
-      const thoughts = thoughtLayer2.querySelectorAll(".thought");
-      const count = thoughts.length;
-      thoughts.forEach((thought) => thought.remove());
-      return { success: true, removed: count };
-    };
-    window.__thoughtsDebug.getFullSnapshot = function(spawnId) {
-      if (!spawnId && debugState.lastSpawn) {
-        spawnId = debugState.lastSpawn.id;
-      }
-      if (!spawnId) {
-        return { error: "No thought ID provided" };
-      }
-      const spawnData = window.__thoughtsDebug.getSpawnData(spawnId);
-      const removalReason = debugState.removalReasons.get(spawnId);
-      const thoughtEl = typeof document !== "undefined" ? document.querySelector(`#thought-layer .thought[data-spawn-id="${spawnId}"]`) : null;
-      const snapshot = {
-        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-        spawnId,
-        inDOM: thoughtEl !== null,
-        spawnData: spawnData || null,
-        removalReason: removalReason || null
-      };
-      if (thoughtEl) {
-        const thoughtRect = thoughtEl.getBoundingClientRect();
-        const thoughtStyle = window.getComputedStyle(thoughtEl);
-        const wordElements = thoughtEl.querySelectorAll(".thought-word, .thought-space");
-        snapshot.currentState = {
-          thought: {
-            rect: {
-              top: thoughtRect.top,
-              left: thoughtRect.left,
-              bottom: thoughtRect.bottom,
-              right: thoughtRect.right,
-              width: thoughtRect.width,
-              height: thoughtRect.height
-            },
-            style: {
-              top: thoughtEl.style.top,
-              left: thoughtEl.style.left,
-              width: thoughtEl.style.width
-            },
-            computed: {
-              zIndex: thoughtStyle.zIndex,
-              opacity: thoughtStyle.opacity,
-              position: thoughtStyle.position
-            }
-          },
-          words: Array.from(wordElements).map((el, idx) => {
-            const rect = el.getBoundingClientRect();
-            const style = window.getComputedStyle(el);
-            const animations = el.getAnimations ? el.getAnimations() : [];
-            return {
-              index: idx,
-              wordIndex: el.dataset.debugWordIndex ? parseInt(el.dataset.debugWordIndex) : null,
-              lineNumber: el.dataset.debugLineNumber ? parseInt(el.dataset.debugLineNumber) : null,
-              className: el.className,
-              textContent: el.textContent,
-              rect: {
-                top: rect.top,
-                left: rect.left,
-                width: rect.width,
-                height: rect.height
-              },
-              computed: {
-                animationName: style.animationName,
-                animationDuration: style.animationDuration,
-                animationDelay: style.animationDelay,
-                animationPlayState: style.animationPlayState,
-                opacity: style.opacity,
-                transform: style.transform,
-                cssVars: {
-                  duration: style.getPropertyValue("--duration"),
-                  delay: style.getPropertyValue("--delay"),
-                  dx: style.getPropertyValue("--dx"),
-                  dy: style.getPropertyValue("--dy")
-                }
-              },
-              animations: animations.map((a) => {
-                var _a, _b, _c, _d, _e, _f;
-                try {
-                  return {
-                    name: a.animationName,
-                    playState: a.playState,
-                    currentTime: a.currentTime,
-                    duration: (_c = (_b = (_a = a.effect) == null ? void 0 : _a.timing) == null ? void 0 : _b.duration) != null ? _c : null,
-                    delay: (_f = (_e = (_d = a.effect) == null ? void 0 : _d.timing) == null ? void 0 : _e.delay) != null ? _f : null
-                  };
-                } catch (e) {
-                  return { error: e.message };
-                }
-              })
-            };
-          })
-        };
-      }
-      return snapshot;
-    };
-    window.__thoughtsDebug.disableCleanup = function() {
-      if (typeof window !== "undefined") {
-        window.__thoughtsDebugCleanupDisabled = true;
-        return { success: true, message: "Cleanup disabled - thoughts will not be automatically removed" };
-      }
-      return { error: "Window not available" };
-    };
-    window.__thoughtsDebug.enableCleanup = function() {
-      if (typeof window !== "undefined") {
-        window.__thoughtsDebugCleanupDisabled = false;
-        return { success: true, message: "Cleanup enabled" };
-      }
-      return { error: "Window not available" };
-    };
-    window.__thoughtsDebug.inspectThought = function(spawnId) {
-      if (!spawnId && debugState.lastSpawn) {
-        spawnId = debugState.lastSpawn.id;
-      }
-      if (!spawnId) {
-        return { error: "No thought ID provided" };
-      }
-      const thoughtEl = typeof document !== "undefined" ? document.querySelector(`#thought-layer .thought[data-spawn-id="${spawnId}"]`) : null;
-      if (!thoughtEl) {
-        const removalReason = debugState.removalReasons.get(spawnId);
-        const spawnData = debugState.spawnHistory.find((s) => s.id === spawnId) || debugState.lastSpawn;
-        return {
-          error: "Thought not found in DOM",
-          spawnId,
-          removalReason: removalReason || null,
-          inHistory: spawnData || null,
-          animationCheck: (spawnData == null ? void 0 : spawnData.animationCheck) || null
-        };
-      }
-      const thoughtRect = thoughtEl.getBoundingClientRect();
-      const metrics = getViewportMetrics();
-      const screenHeight = metrics.isKeyboardVisible ? metrics.layoutHeight : metrics.visualHeight;
-      const screenWidth = metrics.layoutWidth || metrics.width || window.innerWidth || 0;
-      const spawnTime = Number(thoughtEl.dataset.spawnTime) || null;
-      const elapsed = spawnTime ? Date.now() - spawnTime : null;
-      const isOffScreenTop = thoughtRect.bottom < -100;
-      const isOffScreenBottom = thoughtRect.top > screenHeight + 100;
-      const isOffScreenLeft = thoughtRect.right < 0;
-      const isOffScreenRight = thoughtRect.left > screenWidth;
-      const isOffScreen = isOffScreenTop || isOffScreenBottom || isOffScreenLeft || isOffScreenRight;
-      return {
-        spawnId,
-        inDOM: true,
-        rect: {
-          top: thoughtRect.top,
-          left: thoughtRect.left,
-          bottom: thoughtRect.bottom,
-          right: thoughtRect.right,
-          width: thoughtRect.width,
-          height: thoughtRect.height
-        },
-        viewport: {
-          screenHeight,
-          screenWidth,
-          visualHeight: metrics.visualHeight,
-          layoutHeight: metrics.layoutHeight,
-          keyboardVisible: metrics.isKeyboardVisible
-        },
-        offScreenChecks: {
-          top: isOffScreenTop,
-          bottom: isOffScreenBottom,
-          left: isOffScreenLeft,
-          right: isOffScreenRight,
-          any: isOffScreen
-        },
-        spawnTime,
-        elapsed,
-        style: {
-          top: thoughtEl.style.top,
-          left: thoughtEl.style.left,
-          width: thoughtEl.style.width
-        }
-      };
-    };
-  } catch (e) {
-    console.error("Error defining snapshot functions:", e);
-  }
-  window.__thoughtsDebug.enable = () => {
-    localStorage.setItem("thoughts-debug", "true");
-    window.location.reload();
-  };
-  window.__thoughtsDebug.disable = () => {
-    localStorage.setItem("thoughts-debug", "false");
-    window.location.reload();
-  };
-}
 
 // assets/js/main.js
 var scene = document.getElementById("scene");

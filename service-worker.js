@@ -10,8 +10,6 @@ const PRECACHE_ASSETS = [
   '/animation-settings.json',
   '/assets/fonts/Inter-static/Inter_24pt-Light.woff2',
   '/assets/fonts/Inter-static/Inter_24pt-Regular.woff2',
-  '/audio/deference-for-darkness-cut.webm',
-  '/audio/deference-for-darkness-cut.m4a',
   // Background images - cache all variants
   '/images/desktop/hubble-m44-optimized.webp',
   '/images/desktop/hubble-m48-optimized.webp',

@@ -184,14 +184,6 @@ export const initThoughtSpawner = ({
         registerTime: registerStartTime,
       };
 
-      // Store debug data on element
-      if (window.__thoughtsDebug) {
-        el.dataset.debugWordIndex = wordIndex;
-        el.dataset.debugLineNumber = lineNumber;
-        el.dataset.debugDuration = duration;
-        el.dataset.debugDelay = delay;
-      }
-
       // Round to integers to avoid CSS parsing issues with very long decimals
       // CSS doesn't need sub-millisecond precision for animations
       const durationMs = Math.round(duration);
@@ -226,35 +218,9 @@ export const initThoughtSpawner = ({
         maxLifetime = lifetime;
       }
 
-      // Debug: Log if duration is suspiciously short
+      // Validate animation timing
       if (duration <= 0 || delay < 0) {
         console.warn("Animation has invalid timing:", calculatedValues);
-      }
-
-      // Debug: Verify CSS properties were set
-      if (window.__thoughtsDebug?.updateSpawnData && spawnId) {
-        const computedAfterSet = window.getComputedStyle(el);
-        const verifyProps = {
-          duration: computedAfterSet.getPropertyValue("--duration"),
-          delay: computedAfterSet.getPropertyValue("--delay"),
-          dx: computedAfterSet.getPropertyValue("--dx"),
-          dy: computedAfterSet.getPropertyValue("--dy"),
-        };
-
-        const getSpawnData = window.__thoughtsDebug.getSpawnData || (() => null);
-        const existing = getSpawnData(spawnId);
-        const registrations = existing?.animationRegistrations || [];
-        registrations.push({
-          wordIndex,
-          lineNumber,
-          calculated: calculatedValues,
-          cssPropsAfterSet: verifyProps,
-          timestamp: performance.now(),
-        });
-
-        window.__thoughtsDebug.updateSpawnData(spawnId, {
-          animationRegistrations: registrations,
-        });
       }
     };
 
@@ -269,22 +235,6 @@ export const initThoughtSpawner = ({
       span.textContent = word;
       registerAnimation(span, lineNumber, wordIndex);
       wordsWrapper.appendChild(span);
-
-      // Track when word is added
-      if (window.__thoughtsDebug?.updateSpawnData && spawnId) {
-        window.__thoughtsDebug.updateSpawnData(spawnId, {
-          wordAdditions: [
-            ...(window.__thoughtsDebug.getSpawnData?.(spawnId)?.wordAdditions || []),
-            {
-              wordIndex,
-              lineNumber,
-              word,
-              timestamp: performance.now(),
-              inDOM: span.parentNode !== null,
-            },
-          ],
-        });
-      }
     };
 
     const appendSpace = (spaceStr, lineNumber) => {
@@ -337,35 +287,7 @@ export const initThoughtSpawner = ({
     }
 
     if (!thoughtLayer) {
-      if (window.__thoughtsDebug?.setSpawnData) {
-        window.__thoughtsDebug.setSpawnData({
-          id: spawnId,
-          timestamp: Date.now(),
-          originLeft,
-          originTop,
-          width: boxRect.width,
-          travelHeight,
-          fadeBuffer,
-          layoutHeight,
-          keyboardVisible: viewportMetrics.isKeyboardVisible,
-          minDistance: minDistanceFromTextBox,
-          textLength: text.length,
-          textPreview: text.length > 20 ? text.substring(0, 20) + "..." : text,
-          error: "thoughtLayer is null",
-        });
-      }
-      return;
-    }
-
-    if (!thoughtLayer) {
       console.error("Thought spawner: thoughtLayer is null, cannot append thought");
-      if (window.__thoughtsDebug?.setSpawnData) {
-        window.__thoughtsDebug.setSpawnData({
-          id: spawnId,
-          timestamp: Date.now(),
-          error: "thoughtLayer is null",
-        });
-      }
       return;
     }
 
@@ -392,95 +314,25 @@ export const initThoughtSpawner = ({
       const overflow = thoughtBottomInViewport - viewportHeightAfterAppend;
       const newTop = Math.max(0, finalOriginTop - overflow - 10); // 10px buffer
       thought.style.top = `${newTop}px`;
-
-      if (window.__thoughtsDebug?.updateSpawnData) {
-        window.__thoughtsDebug.updateSpawnData(spawnId, {
-          adjustedForOverflow: true,
-          originalTop: finalOriginTop,
-          adjustedTop: newTop,
-          overflow,
-        });
-      }
-    }
-
-    if (window.__thoughtsDebug?.setSpawnData) {
-      const computed = window.getComputedStyle(thought);
-      // Recalculate thoughtRect in case position was adjusted
-      const thoughtRectForDebug = thought.getBoundingClientRect();
-      window.__thoughtsDebug.setSpawnData({
-        id: spawnId,
-        timestamp: Date.now(),
-        originLeft,
-        originTop: finalOriginTop,
-        originTopBeforeAdjust,
-        width: boxRect.width,
-        travelHeight,
-        fadeBuffer,
-        layoutHeight,
-        keyboardVisible: viewportMetrics.isKeyboardVisible,
-        minDistance: minDistanceFromTextBox,
-        textLength: text.length,
-        textPreview: text.length > 20 ? text.substring(0, 20) + "..." : text,
-        textareaRect: {
-          top: boxRect.top,
-          left: boxRect.left,
-          width: boxRect.width,
-          height: boxRect.height,
-        },
-        viewportRect: {
-          width: viewportMetrics.visualWidth || viewportMetrics.width || window.innerWidth || 0,
-          height: viewportMetrics.visualHeight || viewportMetrics.height || window.innerHeight || 0,
-        },
-        zIndex: computed.zIndex || "auto",
-        wordCount: 0,
-        inDOMAfterAppend: isInDOM,
-        thoughtRectAfterAppend: {
-          top: thoughtRectForDebug.top,
-          left: thoughtRectForDebug.left,
-          bottom: thoughtRectForDebug.bottom,
-          right: thoughtRectForDebug.right,
-          width: thoughtRectForDebug.width,
-          height: thoughtRectForDebug.height,
-        },
-      });
-      window.setTimeout(() => {
-        if (window.__thoughtsDebug?.refresh) {
-          window.__thoughtsDebug.refresh();
-        }
-        // Check again after a delay
-        const stillInDOM = thought.parentNode === thoughtLayer;
-        if (!stillInDOM && isInDOM) {
-          console.warn("Thought was removed from DOM between append and first check", spawnId);
-          if (window.__thoughtsDebug?.updateSpawnData) {
-            window.__thoughtsDebug.updateSpawnData(spawnId, {
-              removedBeforeFirstCheck: true,
-            });
-          }
-        }
-      }, 50);
     }
 
     const wordElements = thought.querySelectorAll(".thought-word, .thought-space");
     let completedAnimations = 0;
     const totalAnimations = wordElements.length;
 
-    if (window.__thoughtsDebug?.updateSpawnData && spawnId) {
-      window.__thoughtsDebug.updateSpawnData(spawnId, {
-        wordCount: totalAnimations,
-      });
-    }
-
     // CRITICAL: Re-apply animation properties after thought is in DOM
     // Use double requestAnimationFrame to ensure this happens after browser applies CSS
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         wordElements.forEach((el) => {
-          const expectedDuration = el.dataset.debugDuration;
-          const expectedDelay = el.dataset.debugDelay;
+          // Read duration and delay from CSS custom properties
+          const computed = window.getComputedStyle(el);
+          const durationValue = computed.getPropertyValue("--duration");
+          const delayValue = computed.getPropertyValue("--delay");
 
-          if (expectedDuration && expectedDelay) {
-            const durationMs = Math.round(parseFloat(expectedDuration));
-            const delayMs = Math.round(parseFloat(expectedDelay));
+          if (durationValue && delayValue) {
+            const durationMs = Math.round(parseFloat(durationValue));
+            const delayMs = Math.round(parseFloat(delayValue));
 
             // Force reflow before setting
             void el.offsetHeight;
@@ -516,78 +368,27 @@ export const initThoughtSpawner = ({
     const handleAnimationEnd = (event) => {
       const endTime = performance.now();
       const target = event?.target || event?.currentTarget;
-      const wordIndex = target?.dataset?.debugWordIndex;
-      const lineNumber = target?.dataset?.debugLineNumber;
-      const expectedDuration = target?.dataset?.debugDuration;
-      const expectedDelay = target?.dataset?.debugDelay;
-
       completedAnimations += 1;
-
-      // Track this animation end event
-      if (window.__thoughtsDebug?.updateSpawnData && spawnId) {
-        const computedAtEnd = target ? window.getComputedStyle(target) : null;
-        const animationsAtEnd = target?.getAnimations ? target.getAnimations() : [];
-
-        animationEndEvents.push({
-          wordIndex: wordIndex ? parseInt(wordIndex) : null,
-          lineNumber: lineNumber ? parseInt(lineNumber) : null,
-          timestamp: endTime,
-          completedAnimations,
-          totalAnimations,
-          expectedDuration: expectedDuration ? parseFloat(expectedDuration) : null,
-          expectedDelay: expectedDelay ? parseFloat(expectedDelay) : null,
-          computedStyle: computedAtEnd ? {
-            animationName: computedAtEnd.animationName,
-            animationDuration: computedAtEnd.animationDuration,
-            animationDelay: computedAtEnd.animationDelay,
-            animationPlayState: computedAtEnd.animationPlayState,
-            opacity: computedAtEnd.opacity,
-            transform: computedAtEnd.transform,
-          } : null,
-          animations: animationsAtEnd.map(a => ({
-            name: a.animationName,
-            playState: a.playState,
-            currentTime: a.currentTime,
-            duration: a.effect?.timing?.duration ?? null,
-            delay: a.effect?.timing?.delay ?? null,
-          })),
-        });
-
-        window.__thoughtsDebug.updateSpawnData(spawnId, {
-          animationEndEvents: [...animationEndEvents],
-        });
-      }
 
       if (completedAnimations >= totalAnimations) {
         window.setTimeout(() => {
           if (thought.parentNode) {
-            const spawnId = thought.getAttribute("data-spawn-id");
-            if (spawnId && window.__thoughtsDebug?.setRemovalReason) {
-              window.__thoughtsDebug.setRemovalReason(spawnId, {
-                reason: "all animations completed",
-                completedAnimations,
-                totalAnimations,
-                timestamp: Date.now(),
-                source: "handleAnimationEnd",
-                allEndEvents: animationEndEvents,
-              });
-            }
             thought.remove();
           }
         }, 100);
       }
     };
 
-    wordElements.forEach((el, index) => {
-      const wordIndex = el.dataset.debugWordIndex;
-      const lineNumber = el.dataset.debugLineNumber;
-      const expectedDuration = el.dataset.debugDuration;
-      const expectedDelay = el.dataset.debugDelay;
+    wordElements.forEach((el) => {
+      // Read duration and delay from CSS custom properties
+      const computed = window.getComputedStyle(el);
+      const durationValue = computed.getPropertyValue("--duration");
+      const delayValue = computed.getPropertyValue("--delay");
 
       // CRITICAL: Re-apply animation properties after element is in DOM
       // This ensures the inline styles override the CSS rule
-      const durationMs = expectedDuration ? Math.round(parseFloat(expectedDuration)) : 5400;
-      const delayMs = expectedDelay ? Math.round(parseFloat(expectedDelay)) : 0;
+      const durationMs = durationValue ? Math.round(parseFloat(durationValue)) : 5400;
+      const delayMs = delayValue ? Math.round(parseFloat(delayValue)) : 0;
 
       // Force reflow and then set animation
       void el.offsetHeight; // Force reflow
@@ -595,156 +396,12 @@ export const initThoughtSpawner = ({
       el.style.animationDuration = `${durationMs}ms`;
       el.style.animationDelay = `${delayMs}ms`;
 
-      // Track when listener is attached
-      if (window.__thoughtsDebug?.updateSpawnData && spawnId) {
-        const computedBeforeListen = window.getComputedStyle(el);
-        const animationsBeforeListen = el.getAnimations ? el.getAnimations() : [];
-        const getSpawnData = window.__thoughtsDebug.getSpawnData || (() => null);
-        const existing = getSpawnData(spawnId);
-
-        window.__thoughtsDebug.updateSpawnData(spawnId, {
-          animationListeners: [
-            ...(existing?.animationListeners || []),
-            {
-              wordIndex: wordIndex ? parseInt(wordIndex) : index,
-              lineNumber: lineNumber ? parseInt(lineNumber) : null,
-              expectedDuration: expectedDuration ? parseFloat(expectedDuration) : null,
-              expectedDelay: expectedDelay ? parseFloat(expectedDelay) : null,
-              timestamp: performance.now(),
-              appliedDuration: durationMs,
-              appliedDelay: delayMs,
-              computedBeforeListen: {
-                animationName: computedBeforeListen.animationName,
-                animationDuration: computedBeforeListen.animationDuration,
-                animationDelay: computedBeforeListen.animationDelay,
-                animationPlayState: computedBeforeListen.animationPlayState,
-                cssVars: {
-                  duration: computedBeforeListen.getPropertyValue("--duration"),
-                  delay: computedBeforeListen.getPropertyValue("--delay"),
-                  dx: computedBeforeListen.getPropertyValue("--dx"),
-                  dy: computedBeforeListen.getPropertyValue("--dy"),
-                },
-              },
-              animationsBeforeListen: animationsBeforeListen.map(a => ({
-                name: a.animationName,
-                playState: a.playState,
-                currentTime: a.currentTime,
-              })),
-            },
-          ],
-        });
-      }
-
       el.addEventListener("animationend", handleAnimationEnd, { once: true });
-
-      // Also track animationstart if available
-      el.addEventListener("animationstart", (event) => {
-        if (window.__thoughtsDebug?.updateSpawnData && spawnId) {
-          const getSpawnData = window.__thoughtsDebug.getSpawnData || (() => null);
-          const existing = getSpawnData(spawnId);
-          window.__thoughtsDebug.updateSpawnData(spawnId, {
-            animationStartEvents: [
-              ...(existing?.animationStartEvents || []),
-              {
-                wordIndex: wordIndex ? parseInt(wordIndex) : index,
-                timestamp: performance.now(),
-                target: event.target?.className,
-              },
-            ],
-          });
-        }
-      }, { once: true });
-
-      // Debug: Check animation state immediately and after a delay
-      if (window.__thoughtsDebug?.updateSpawnData && spawnId) {
-        // Check immediately
-        const checkAnimation = () => {
-          if (!thought.parentNode) {
-            // Thought was removed, can't check
-            return;
-          }
-
-          const animations = el.getAnimations ? el.getAnimations() : [];
-          const computedStyle = window.getComputedStyle(el);
-          const animationName = computedStyle.animationName;
-          const animationPlayState = computedStyle.animationPlayState;
-          const animationDuration = computedStyle.animationDuration;
-          const animationDelay = computedStyle.animationDelay;
-
-          // Get CSS custom properties
-          const duration = computedStyle.getPropertyValue("--duration");
-          const delay = computedStyle.getPropertyValue("--delay");
-          const dx = computedStyle.getPropertyValue("--dx");
-          const dy = computedStyle.getPropertyValue("--dy");
-
-          const checkData = {
-            hasAnimations: animations.length > 0,
-            animationCount: animations.length,
-            animationName: animationName !== "none" ? animationName : null,
-            animationPlayState,
-            animationDuration,
-            animationDelay,
-            animationRunning: animations.some(a => a.playState === "running"),
-            cssVars: {
-              duration,
-              delay,
-              dx,
-              dy,
-            },
-            animationDetails: animations.map(a => {
-              try {
-                return {
-                  name: a.animationName,
-                  duration: a.effect?.timing?.duration ?? null,
-                  delay: a.effect?.timing?.delay ?? null,
-                  playState: a.playState,
-                  currentTime: a.currentTime,
-                };
-              } catch (e) {
-                return {
-                  name: a.animationName || "unknown",
-                  error: e.message,
-                  playState: a.playState,
-                };
-              }
-            }),
-          };
-
-          window.__thoughtsDebug.updateSpawnData(spawnId, {
-            animationCheck: checkData,
-          });
-        };
-
-        // Check immediately
-        checkAnimation();
-
-        // Check again after a short delay
-        window.setTimeout(checkAnimation, 50);
-        window.setTimeout(checkAnimation, 200);
-      }
     });
 
     const checkAndRemove = () => {
       if (!thought.parentNode) {
         // Thought was already removed by something else
-        const spawnId = thought.getAttribute("data-spawn-id");
-        if (spawnId && window.__thoughtsDebug?.setRemovalReason) {
-          const existingReason = window.__thoughtsDebug.getRemovalReason?.(spawnId);
-          if (!existingReason) {
-            window.__thoughtsDebug.setRemovalReason(spawnId, {
-              reason: "removed by external code (parentNode is null)",
-              timestamp: Date.now(),
-            });
-          }
-        }
-        return;
-      }
-
-      // Check if cleanup is disabled for debugging
-      if (typeof window !== "undefined" && window.__thoughtsDebugCleanupDisabled) {
-        window.requestAnimationFrame(() => {
-          window.setTimeout(checkAndRemove, 200);
-        });
         return;
       }
 
@@ -782,52 +439,6 @@ export const initThoughtSpawner = ({
       const shouldBeComplete = maxLifetime > 0 && elapsed > maxLifetime + 1000;
 
       if (isOffScreen || shouldBeComplete) {
-        const spawnId = thought.getAttribute("data-spawn-id");
-        if (spawnId && window.__thoughtsDebug?.setRemovalReason) {
-          const reason = isOffScreen
-            ? `off-screen: ${isOffScreenTop ? "top" : ""}${isOffScreenBottom ? "bottom" : ""}${isOffScreenLeft ? "left" : ""}${isOffScreenRight ? "right" : ""}`
-            : "lifetime expired";
-          window.__thoughtsDebug.setRemovalReason(spawnId, {
-            reason,
-            elapsed,
-            maxLifetime,
-            rect: {
-              top: thoughtRect.top,
-              bottom: thoughtRect.bottom,
-              left: thoughtRect.left,
-              right: thoughtRect.right,
-            },
-            screenHeight,
-            screenWidth,
-            viewportBounds: {
-              visualHeight: viewportBounds.visualHeight,
-              layoutHeight: viewportBounds.layoutHeight,
-              isKeyboardVisible: viewportBounds.isKeyboardVisible,
-            },
-            checks: {
-              isOffScreenTop,
-              isOffScreenBottom,
-              isOffScreenLeft,
-              isOffScreenRight,
-            },
-          });
-        }
-        const spawnIdForCleanup = thought.getAttribute("data-spawn-id");
-        if (spawnIdForCleanup && window.__thoughtsDebug?.setRemovalReason) {
-          // Only set if not already set (to avoid overwriting)
-          const existing = window.__thoughtsDebug.getRemovalReason?.(spawnIdForCleanup);
-          if (!existing) {
-            window.__thoughtsDebug.setRemovalReason(spawnIdForCleanup, {
-              reason: isOffScreen
-                ? `off-screen: ${isOffScreenTop ? "top" : ""}${isOffScreenBottom ? "bottom" : ""}${isOffScreenLeft ? "left" : ""}${isOffScreenRight ? "right" : ""}`
-                : "lifetime expired",
-              elapsed,
-              maxLifetime,
-              source: "checkAndRemove",
-              timestamp: Date.now(),
-            });
-          }
-        }
         thought.remove();
         return;
       }
