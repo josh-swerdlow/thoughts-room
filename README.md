@@ -1,16 +1,10 @@
-# Thoughts Room (Modern Remake)
-
-Recreation of the classic "Thoughts Room" experience: a single-page, client-side sanctuary where visitors type their thoughts, release them into a cosmic sky, and watch each fragment drift away with gentle ambience. No persistence, no accounts—just a moment of quiet.
-
----
-
-## About
+# Thoughts Room
 
 This is a room for you to let your thoughts flow out of your head and into the stars. You can type your thoughts into the text area and press enter to release them. You can alter the sounds and the animations to your liking.
 
 It is completely free, open source, and lives entirely in your browser. Read, fork, or contribute on [GitHub](https://github.com/josh-swerdlow/thoughts-room).
 
-This is a remake of the thoughts room from "The Quiet Place" project. Created by [Amit Tweeto](https://x.com/amitayt).
+This is a remake of the thoughts room from "The Quiet Place" project. Created by [Amitay Tweeto](https://x.com/amitayt).
 
 The original site featured [One Day in August](https://open.spotify.com/track/4qHBvrzFbpUWeFxhdbpar8?si=7534e36c461e4320) by [Marc Teichert](https://open.spotify.com/artist/4kejsujyv9SlWKhFjRO7n4?si=E2_D4GxiT6mI4geFicdSkQ) ([Spotify](https://open.spotify.com/track/4qHBvrzFbpUWeFxhdbpar8?si=7534e36c461e4320), [Apple Music](https://music.apple.com/us/artist/marc-teichert/514192491), [Bandcamp](https://marcteichert.bandcamp.com/)). With his permission, One Day in August once again provides audio for this quiet place to reflect on your thoughts.
 
@@ -165,8 +159,6 @@ Use `npm run dev` during development to keep `dist/` updated as you edit `assets
 ## Credits
 
 - Inspired by The Quiet Place Project – Thoughts Room by [Amitay Tweeto](https://x.com/amitayt)
-  ([Original Site](https://thequietplaceproject.com/thoughtsroom), [Amitay's Portfolio](https://amitayt.com))
 - Star-field imagery courtesy of NASA / Hubble
-- Music: "One Day in August" by Marc Teichert
-  ([Spotify](https://open.spotify.com/track/4qHBvrzFbpUWeFxhdbpar8?si=7534e36c461e4320), [Apple Music](https://music.apple.com/us/artist/marc-teichert/514192491), [Bandcamp](https://marcteichert.bandcamp.com/))
+- Music: "One Day in August" by Marc Teichert ()
 - Recreated & maintained by Josh Swerdlow
