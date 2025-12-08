@@ -1,6 +1,18 @@
 # Thoughts Room (Modern Remake)
 
-Recreation of the classic “Thoughts Room” experience: a single-page, client-side sanctuary where visitors type their thoughts, release them into a cosmic sky, and watch each fragment drift away with gentle ambience. No persistence, no accounts—just a moment of quiet.
+Recreation of the classic "Thoughts Room" experience: a single-page, client-side sanctuary where visitors type their thoughts, release them into a cosmic sky, and watch each fragment drift away with gentle ambience. No persistence, no accounts—just a moment of quiet.
+
+---
+
+## About
+
+This is a room for you to let your thoughts flow out of your head and into the stars. You can type your thoughts into the text area and press enter to release them. You can alter the sounds and the animations to your liking.
+
+It is completely free, open source, and lives entirely in your browser. Read, fork, or contribute on [GitHub](https://github.com/josh-swerdlow/thoughts-room).
+
+This is a remake of the thoughts room from "The Quiet Place" project. Created by [Amit Tweeto](https://x.com/amitayt).
+
+The original site featured [One Day in August](https://open.spotify.com/track/4qHBvrzFbpUWeFxhdbpar8?si=7534e36c461e4320) by [Marc Teichert](https://open.spotify.com/artist/4kejsujyv9SlWKhFjRO7n4?si=E2_D4GxiT6mI4geFicdSkQ) ([Spotify](https://open.spotify.com/track/4qHBvrzFbpUWeFxhdbpar8?si=7534e36c461e4320), [Apple Music](https://music.apple.com/us/artist/marc-teichert/514192491), [Bandcamp](https://marcteichert.bandcamp.com/)). With his permission, One Day in August once again provides audio for this quiet place to reflect on your thoughts.
 
 ---
 
@@ -21,9 +33,20 @@ Recreation of the classic “Thoughts Room” experience: a single-page, client-
 thoughts-room/
 ├── index.html
 ├── animation-settings.json
+├── manifest.json
+├── service-worker.js
+├── robots.txt
+├── _headers
+├── LICENSE
+├── package.json
+├── package-lock.json
+├── pnpm-lock.yaml
 ├── dist/
 │   ├── main.css
-│   └── main.js
+│   ├── main.js
+│   ├── main.js.map
+│   ├── Inter_24pt-Light-HQU26GS2.woff2
+│   └── Inter_24pt-Regular-FSD54WEU.woff2
 ├── assets/
 │   ├── css/
 │   │   ├── main.css
@@ -41,19 +64,39 @@ thoughts-room/
 │   │   │   └── thoughts.css
 │   │   └── utilities/
 │   │       └── responsive.css
-│   └── js/
-│       ├── main.js
-│       └── modules/
-│           ├── animation-config.js
-│           ├── backgrounds.js
-│           ├── modals.js
-│           ├── prompt-glow.js
-│           ├── spotify-embed.js
-│           ├── thought-spawner.js
-│           ├── utils.js
-│           └── viewport.js
+│   ├── js/
+│   │   ├── main.js
+│   │   └── modules/
+│   │       ├── animation-config.js
+│   │       ├── backgrounds.js
+│   │       ├── modals.js
+│   │       ├── navigation-toggle.js
+│   │       ├── prompt-glow.js
+│   │       ├── spotify-embed.js
+│   │       ├── thought-spawner.js
+│   │       ├── utils.js
+│   │       └── viewport.js
+│   └── fonts/
+│       └── Inter-static/
+│           ├── Inter_24pt-Light.woff2
+│           ├── Inter_24pt-Regular.woff2
+│           ├── OFL.txt
+│           └── README.txt
 ├── images/
-└── package.json
+│   ├── desktop/
+│   │   ├── hubble-m44-optimized.webp
+│   │   ├── hubble-m48-optimized.webp
+│   │   └── wild-duck-cluster-optimized.webp
+│   ├── mobile/
+│   │   ├── hubble-m44-mobile.webp
+│   │   ├── hubble-m48-mobile.webp
+│   │   └── wild-duck-cluster-mobile.webp
+│   └── og/
+│       ├── hubble-m44.webp
+│       ├── hubble-m48.webp
+│       └── wild-duck-cluster.webp
+└── todo/
+    └── todo.md
 ```
 
 ### CSS organization
@@ -72,6 +115,7 @@ thoughts-room/
 - `thought-spawner.js` – splits input strings, attaches CSS variables, schedules cleanup.
 - `spotify-embed.js` – Spotify iframe embed integration with play/pause controls and custom track/playlist support.
 - `modals.js` – open/close logic, aria attributes, focus restoration.
+- `navigation-toggle.js` – handles navigation menu toggle functionality.
 - `viewport.js` – viewport unit calculations and keyboard offset handling.
 - `utils.js` – shared helpers (`randomBetween`, `clamp`, `ensureOrder`, etc.).
 
@@ -120,7 +164,9 @@ Use `npm run dev` during development to keep `dist/` updated as you edit `assets
 
 ## Credits
 
-- Inspired by The Quiet Place Project – Thoughts Room by [Amitay](https://x.com/amitayt)
+- Inspired by The Quiet Place Project – Thoughts Room by [Amitay Tweeto](https://x.com/amitayt)
+  ([Original Site](https://thequietplaceproject.com/thoughtsroom), [Amitay's Portfolio](https://amitayt.com))
 - Star-field imagery courtesy of NASA / Hubble
-- Music: "One Day in August" by Marc Teichert (via Spotify)
+- Music: "One Day in August" by Marc Teichert
+  ([Spotify](https://open.spotify.com/track/4qHBvrzFbpUWeFxhdbpar8?si=7534e36c461e4320), [Apple Music](https://music.apple.com/us/artist/marc-teichert/514192491), [Bandcamp](https://marcteichert.bandcamp.com/))
 - Recreated & maintained by Josh Swerdlow
