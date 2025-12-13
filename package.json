@@ -3,21 +3,24 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "npm run build:js && npm run build:css",
+    "build": "pnpm run build:js && pnpm run build:css",
     "build:js": "esbuild assets/js/main.js --bundle --format=esm --target=es2019 --outdir=dist --minify --sourcemap --legal-comments=none",
     "build:css": "esbuild assets/css/main.css --bundle --outdir=dist --minify --legal-comments=none --loader:.webp=file --loader:.woff2=file --loader:.ttf=file --external:/images/*",
-    "dev": "npm-run-all --parallel dev:js dev:css",
+    "dev": "pnpm run dev:js && pnpm run dev:css",
     "dev:js": "esbuild assets/js/main.js --bundle --format=esm --target=es2019 --outdir=dist --sourcemap --legal-comments=none --watch",
     "dev:css": "esbuild assets/css/main.css --bundle --outdir=dist --legal-comments=none --loader:.webp=file --loader:.woff2=file --loader:.ttf=file --external:/images/* --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "uninstall": "rm -rf node_modules/ && pnpm run clean",
+    "reinstall": "pnpm run uninstall && pnpm install",
+    "reset": "pnpm run reinstall && pnpm run build"
   },
   "devDependencies": {
-    "esbuild": "^0.21.5",
-    "npm-run-all": "^4.1.5"
+    "esbuild": "^0.21.5"
   },
   "pnpm": {
     "overrides": {
       "esbuild@<=0.24.2": ">=0.25.0"
     }
-  }
+  },
+  "packageManager": "pnpm@8.12.0"
 }
