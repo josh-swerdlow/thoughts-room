@@ -18,6 +18,7 @@
   --viewport-visible-height: 100vh;
   --viewport-visible-unit: 1vh;
   --viewport-offset-bottom: 0px;
+  --cta-banner-height: 0px;
 
   /* Spacing scale */
   --space-2xs: clamp(0.25rem, 0.2rem + 0.2vw, 0.4rem);

@@ -1,3 +1,7 @@
+body {
+  padding-top: var(--cta-banner-height, 0px);
+}
+
 #scene {
   position: fixed;
   width: 100%;

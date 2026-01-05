@@ -69,6 +69,31 @@
     max-height: 90vh;
     padding: clamp(1.5rem, 1.2rem + 2vw, 2rem);
   }
+
+  .cta-banner {
+    width: 100%;
+    padding: 0.2rem clamp(0.6rem, 0.4rem + 2vw, 1rem);
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: var(--space-2xs);
+  }
+
+  #spotify-login-cta {
+    height: clamp(24px, 6vw, 40px);
+    min-height: 24px;
+    max-height: 40px;
+  }
+
+  .cta-content {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .cta-text {
+    justify-content: center;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

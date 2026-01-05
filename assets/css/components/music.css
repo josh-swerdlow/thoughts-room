@@ -51,7 +51,7 @@
 
 .spotify-embed-container {
   position: fixed;
-  top: calc(var(--space-nav-offset-y) + var(--viewport-offset-top, 0px));
+  top: calc(var(--cta-banner-height, 0px) + var(--space-nav-offset-y) + var(--viewport-offset-top, 0px));
   left: var(--space-nav-offset-x);
   width: 400px;
   max-width: 400px;

@@ -140,6 +140,37 @@
   </head>
   <body class="loading">
     <!-- Spotify embed on left side, inline with nav -->
+    <div
+      id="spotify-login-cta"
+      class="cta-banner is-hidden"
+      role="region"
+      aria-live="polite"
+      aria-label="Spotify login needed for full playback"
+      hidden
+    >
+      <div class="cta-content">
+        <p class="cta-text">
+          <a
+            class="cta-link"
+            href="https://accounts.spotify.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Log In
+          </a>
+          to Spotify for full song playback!
+        </p>
+      </div>
+      <button
+        type="button"
+        class="cta-dismiss"
+        id="spotify-login-cta-dismiss"
+        aria-label="Dismiss Spotify login notice"
+      >
+        ×
+      </button>
+    </div>
+
     <div id="spotify-embed-container" class="spotify-embed-container">
       <div id="spotify-iframe-wrapper"></div>
     </div>
@@ -185,6 +216,37 @@
         </button>
       </div>
     </nav>
+
+    <div
+      id="spotify-login-cta"
+      class="cta-banner is-hidden"
+      role="region"
+      aria-live="polite"
+      aria-label="Spotify login needed for full playback"
+      hidden
+    >
+      <div class="cta-content">
+        <p class="cta-text">
+          <a
+            class="cta-link"
+            href="https://accounts.spotify.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Log In
+          </a>
+          to Spotify for full song playback!
+        </p>
+      </div>
+      <button
+        type="button"
+        class="cta-dismiss"
+        id="spotify-login-cta-dismiss"
+        aria-label="Dismiss Spotify login notice"
+      >
+        ×
+      </button>
+    </div>
 
     <div id="scene">
       <div class="sky" aria-hidden="true">

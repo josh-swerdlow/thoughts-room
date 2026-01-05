@@ -1,6 +1,6 @@
 .nav-buttons {
   position: fixed;
-  top: calc(var(--space-nav-offset-y) + var(--viewport-offset-top, 0px));
+  top: calc(var(--cta-banner-height, 0px) + var(--space-nav-offset-y) + var(--viewport-offset-top, 0px));
   right: var(--space-nav-offset-x);
   display: flex;
   align-items: center;
@@ -124,3 +124,94 @@
   font-size: calc(var(--font-size-sm) * 0.9);
 }
 
+/* Spotify login CTA */
+#spotify-login-cta {
+  height: 24px;
+  min-height: 24px;
+}
+
+.cta-banner {
+  position: fixed;
+  top: calc(var(--viewport-offset-top, 0px));
+  left: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-xs);
+  padding: 0.25rem clamp(0.75rem, 0.5rem + 1vw, 1.2rem);
+  border: none;
+  border-bottom: 1px solid var(--color-border-glass);
+  background: color-mix(in srgb, var(--color-surface-glass) 96%, transparent);
+  backdrop-filter: blur(var(--blur-glass));
+  box-shadow: 0 6px 20px color-mix(in srgb, #000 25%, transparent);
+  color: var(--color-text-primary);
+  z-index: 10;
+  transition:
+    opacity var(--motion-duration-md) var(--motion-ease-emphasized),
+    transform var(--motion-duration-md) var(--motion-ease-emphasized);
+}
+
+.cta-banner[hidden] {
+  display: none;
+}
+
+.cta-banner.is-hidden {
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+}
+
+.cta-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: var(--space-2xs);
+  line-height: var(--line-height-tight);
+}
+
+.cta-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: calc(var(--space-2xs) * 0.8);
+  font-size: var(--font-size-interactive-xs);
+  color: var(--color-text-muted);
+}
+
+.cta-link {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
+  padding-bottom: 0.05rem;
+}
+
+.cta-link:hover,
+.cta-link:focus-visible {
+  color: var(--color-accent);
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.cta-dismiss {
+  margin-left: auto;
+  padding: 0.35rem 0.65rem;
+  border: none;
+  background: none;
+  appearance: none;
+  -webkit-appearance: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition:
+    color var(--motion-duration-md) var(--motion-ease-emphasized);
+}
+
+.cta-dismiss:hover,
+.cta-dismiss:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  color: var(--color-accent);
+}

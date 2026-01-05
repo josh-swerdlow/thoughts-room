@@ -16,6 +16,71 @@ const thoughtLayer = document.getElementById("thought-layer");
 const skyElement = document.querySelector(".stars");
 const body = document.body;
 
+const CTA_DISMISS_KEY = "thoughts-room.spotify-login-cta-dismissed";
+const CTA_HEIGHT_VAR = "--cta-banner-height";
+
+const initSpotifyLoginCta = () => {
+  const cta = document.getElementById("spotify-login-cta");
+  const dismissBtn = document.getElementById("spotify-login-cta-dismiss");
+  if (!cta || !dismissBtn) {
+    return null;
+  }
+
+  const setBannerHeight = () => {
+    const height = cta?.offsetHeight || 0;
+    document.documentElement.style.setProperty(CTA_HEIGHT_VAR, `${height}px`);
+  };
+
+  const hide = () => {
+    cta.classList.add("is-hidden");
+    document.documentElement.style.setProperty(CTA_HEIGHT_VAR, "0px");
+    setTimeout(() => {
+      cta.setAttribute("hidden", "");
+    }, 220);
+  };
+
+  const show = () => {
+    cta.removeAttribute("hidden");
+    requestAnimationFrame(() => {
+      cta.classList.remove("is-hidden");
+      setBannerHeight();
+    });
+  };
+
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem(CTA_DISMISS_KEY) === "true";
+  } catch {
+    dismissed = false;
+  }
+
+  if (dismissed) {
+    cta.setAttribute("hidden", "");
+    return { show, hide };
+  }
+
+  show();
+
+  const handleResize = () => {
+    setBannerHeight();
+  };
+
+  dismissBtn.addEventListener("click", () => {
+    try {
+      localStorage.setItem(CTA_DISMISS_KEY, "true");
+    } catch {
+      // ignore write failures (e.g., private mode)
+    }
+    window.removeEventListener("resize", handleResize);
+    hide();
+  });
+
+  window.addEventListener("resize", handleResize);
+  setBannerHeight();
+
+  return { show, hide };
+};
+
 // Loading state tracker
 const loadingState = {
   background: false,
@@ -94,6 +159,8 @@ defer(() => {
 
 // Phase 3: Spotify embed and remaining initialization (defer)
 defer(async () => {
+  initSpotifyLoginCta();
+
   // Initialize Spotify embed instead of audio
   let spotifyControls = null;
   try {
